@@ -1256,7 +1256,7 @@ SELECT v.rtime,
                SUM(a.tablespace_size * c.block_size / 1024 / 1024 / 1024) ts_size_gb,
                SUM(a.tablespace_usedsize * c.block_size / 1024 / 1024 / 1024) ts_used_gb,
                SUM((a.tablespace_size - a.tablespace_usedsize) * c.block_size / 1024 / 1024 / 1024) ts_free_gb,
-               ROUND(SUM(a.tablespace_usedsize) / SUM(a.tablespace_size) * 100,2) pct_used
+               ROUND(SUM(a.tablespace_usedsize) / NULLIF(SUM(a.tablespace_size), 0) * 100, 2) pct_used
           FROM cdb_hist_tbspc_space_usage a,
                (SELECT tablespace_id,
                        substr(rtime,

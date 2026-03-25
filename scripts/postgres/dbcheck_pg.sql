@@ -48,7 +48,7 @@ SELECT '<center><font size="+3" color="darkgreen"><b>'
     || ' PostgreSQL DBCheck Report</b></font></center><hr>';
 
 -- ============================================================================
--- Scalar Values (span tags)
+-- Scalar Values (span tags) - Original 8
 -- ============================================================================
 
 -- dbversion
@@ -95,6 +95,191 @@ SELECT '<span id="datadir">' || (SELECT setting FROM pg_settings WHERE name = 'd
 SELECT '<span id="max_connections_setting">'
     || (SELECT setting FROM pg_settings WHERE name = 'max_connections')
     || '</span>';
+
+-- ============================================================================
+-- Scalar Values (span tags) - New 5
+-- ============================================================================
+
+-- cluster_name
+SELECT '<span id="cluster_name">'
+    || COALESCE(
+        NULLIF((SELECT setting FROM pg_settings WHERE name = 'cluster_name'), ''),
+        'not set'
+    )
+    || '</span>';
+
+-- pg_config_file
+SELECT '<span id="pg_config_file">'
+    || (SELECT setting FROM pg_settings WHERE name = 'config_file')
+    || '</span>';
+
+-- shared_buffers
+SELECT '<span id="shared_buffers">'
+    || (SELECT setting || ' ' || unit FROM pg_settings WHERE name = 'shared_buffers')
+    || '</span>';
+
+-- work_mem
+SELECT '<span id="work_mem">'
+    || (SELECT setting || ' ' || unit FROM pg_settings WHERE name = 'work_mem')
+    || '</span>';
+
+-- effective_cache_size
+SELECT '<span id="effective_cache_size">'
+    || (SELECT setting || ' ' || unit FROM pg_settings WHERE name = 'effective_cache_size')
+    || '</span>';
+
+-- ============================================================================
+-- Table: instance_info
+-- Instance configuration parameters
+-- ============================================================================
+SELECT '<p class="section">Instance Configuration</p>';
+SELECT '<table id="instance_info">'
+    || '<tr><th>Parameter</th><th>Value</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || name || '</td>'
+    || '<td>' || setting || CASE WHEN unit IS NOT NULL AND unit <> '' THEN ' ' || unit ELSE '' END || '</td>'
+    || '</tr>'
+FROM pg_settings
+WHERE name IN (
+    'shared_buffers',
+    'work_mem',
+    'maintenance_work_mem',
+    'effective_cache_size',
+    'wal_buffers',
+    'max_wal_size',
+    'min_wal_size',
+    'checkpoint_timeout',
+    'checkpoint_completion_target',
+    'random_page_cost',
+    'effective_io_concurrency',
+    'max_parallel_workers',
+    'max_parallel_workers_per_gather',
+    'autovacuum'
+)
+ORDER BY name;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: database_detail
+-- Detailed database information
+-- ============================================================================
+SELECT '<p class="section">Database Detail</p>';
+SELECT '<table id="database_detail">'
+    || '<tr><th>Database</th><th>Owner</th><th>Encoding</th><th>Collation</th><th>Tablespace</th><th>Size</th><th>Connections</th><th>Age</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || d.datname || '</td>'
+    || '<td>' || r.rolname || '</td>'
+    || '<td>' || pg_encoding_to_char(d.encoding) || '</td>'
+    || '<td>' || d.datcollate || '</td>'
+    || '<td>' || t.spcname || '</td>'
+    || '<td>' || pg_size_pretty(pg_database_size(d.datname)) || '</td>'
+    || '<td>' || (SELECT count(*) FROM pg_stat_activity WHERE datname = d.datname) || '</td>'
+    || '<td>'
+    || CASE
+        WHEN age(d.datfrozenxid) > 1000000000
+            THEN '<font color="red"><b>' || age(d.datfrozenxid)::text || '</b></font>'
+        ELSE age(d.datfrozenxid)::text
+       END
+    || '</td>'
+    || '</tr>'
+FROM pg_database d
+JOIN pg_roles r ON d.datdba = r.oid
+JOIN pg_tablespace t ON d.dattablespace = t.oid
+WHERE d.datistemplate = false
+ORDER BY pg_database_size(d.datname) DESC;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: object_count
+-- Object counts per schema
+-- ============================================================================
+SELECT '<p class="section">Object Count per Schema</p>';
+SELECT '<table id="object_count">'
+    || '<tr><th>Schema</th><th>Tables</th><th>Indexes</th><th>Sequences</th><th>Views</th><th>Functions</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || n.nspname || '</td>'
+    || '<td>' || (SELECT count(*) FROM pg_class c WHERE c.relnamespace = n.oid AND c.relkind = 'r') || '</td>'
+    || '<td>' || (SELECT count(*) FROM pg_class c WHERE c.relnamespace = n.oid AND c.relkind = 'i') || '</td>'
+    || '<td>' || (SELECT count(*) FROM pg_class c WHERE c.relnamespace = n.oid AND c.relkind = 'S') || '</td>'
+    || '<td>' || (SELECT count(*) FROM pg_class c WHERE c.relnamespace = n.oid AND c.relkind = 'v') || '</td>'
+    || '<td>' || (SELECT count(*) FROM pg_proc p WHERE p.pronamespace = n.oid) || '</td>'
+    || '</tr>'
+FROM pg_namespace n
+WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+  AND n.nspname NOT LIKE 'pg_temp_%'
+  AND n.nspname NOT LIKE 'pg_toast_temp_%'
+  AND (
+      EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid AND c.relkind IN ('r','i','S','v'))
+      OR EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid)
+  )
+ORDER BY n.nspname;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: table_age
+-- Tables approaching TXID wraparound
+-- ============================================================================
+SELECT '<p class="section">Table Age (TXID Wraparound Risk)</p>';
+SELECT '<table id="table_age">'
+    || '<tr><th>Schema</th><th>Table</th><th>Age</th><th>Size</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || n.nspname || '</td>'
+    || '<td>' || c.relname || '</td>'
+    || '<td>'
+    || CASE
+        WHEN age(c.relfrozenxid) > 500000000
+            THEN '<font color="red"><b>' || age(c.relfrozenxid)::text || '</b></font>'
+        ELSE age(c.relfrozenxid)::text
+       END
+    || '</td>'
+    || '<td>' || pg_size_pretty(pg_total_relation_size(c.oid)) || '</td>'
+    || '</tr>'
+FROM pg_class c
+JOIN pg_namespace n ON c.relnamespace = n.oid
+WHERE c.relkind = 'r'
+  AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+ORDER BY age(c.relfrozenxid) DESC
+LIMIT 30;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: top_tables_by_size
+-- Top 20 largest tables
+-- ============================================================================
+SELECT '<p class="section">Top 20 Tables by Size</p>';
+SELECT '<table id="top_tables_by_size">'
+    || '<tr><th>Schema</th><th>Table</th><th>Total_Size</th><th>Table_Size</th><th>Index_Size</th><th>Rows</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || n.nspname || '</td>'
+    || '<td>' || c.relname || '</td>'
+    || '<td>'
+    || CASE
+        WHEN pg_total_relation_size(c.oid) > 10737418240
+            THEN '<font color="red"><b>' || pg_size_pretty(pg_total_relation_size(c.oid)) || '</b></font>'
+        ELSE pg_size_pretty(pg_total_relation_size(c.oid))
+       END
+    || '</td>'
+    || '<td>' || pg_size_pretty(pg_relation_size(c.oid)) || '</td>'
+    || '<td>' || pg_size_pretty(pg_indexes_size(c.oid)) || '</td>'
+    || '<td>' || c.reltuples::bigint || '</td>'
+    || '</tr>'
+FROM pg_class c
+JOIN pg_namespace n ON c.relnamespace = n.oid
+WHERE c.relkind = 'r'
+  AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+ORDER BY pg_total_relation_size(c.oid) DESC
+LIMIT 20;
+
+SELECT '</table>';
 
 -- ============================================================================
 -- Table: tablespace_usage
@@ -452,6 +637,229 @@ FROM pg_extension e
 JOIN pg_namespace n ON e.extnamespace = n.oid
 LEFT JOIN pg_description c ON c.objoid = e.oid AND c.classoid = 'pg_extension'::regclass
 ORDER BY e.extname;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: cache_hit_ratio
+-- Buffer cache hit ratios per database
+-- ============================================================================
+SELECT '<p class="section">Cache Hit Ratio</p>';
+SELECT '<table id="cache_hit_ratio">'
+    || '<tr><th>Database</th><th>Heap_Hit_Ratio</th><th>Index_Hit_Ratio</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || datname || '</td>'
+    || '<td>'
+    || CASE
+        WHEN heap_hit_ratio < 95
+            THEN '<font color="red"><b>' || heap_hit_ratio || '%</b></font>'
+        ELSE heap_hit_ratio || '%'
+       END
+    || '</td>'
+    || '<td>'
+    || CASE
+        WHEN idx_hit_ratio < 95
+            THEN '<font color="red"><b>' || idx_hit_ratio || '%</b></font>'
+        ELSE idx_hit_ratio || '%'
+       END
+    || '</td>'
+    || '</tr>'
+FROM (
+    SELECT
+        datname,
+        round(
+            CASE WHEN (blks_hit + blks_read) > 0
+                THEN 100.0 * blks_hit / (blks_hit + blks_read)
+                ELSE 100
+            END, 2
+        )::text AS heap_hit_ratio,
+        round(
+            CASE WHEN (blks_hit + blks_read) > 0
+                THEN 100.0 * blks_hit / (blks_hit + blks_read)
+                ELSE 100
+            END, 2
+        )::text AS idx_hit_ratio
+    FROM pg_stat_database
+    WHERE datname NOT LIKE 'template%'
+      AND datname IS NOT NULL
+) sub
+ORDER BY datname;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: bgwriter_stats
+-- Background writer statistics
+-- ============================================================================
+SELECT '<p class="section">Background Writer Statistics</p>';
+SELECT '<table id="bgwriter_stats">'
+    || '<tr><th>Metric</th><th>Value</th></tr>';
+
+SELECT '<tr><td>checkpoints_timed</td><td>' || checkpoints_timed || '</td></tr>'
+    || '<tr><td>checkpoints_req</td><td>'
+    || CASE
+        WHEN checkpoints_req > checkpoints_timed AND checkpoints_timed > 0
+            THEN '<font color="red"><b>' || checkpoints_req || '</b></font>'
+        ELSE checkpoints_req::text
+       END
+    || '</td></tr>'
+    || '<tr><td>buffers_checkpoint</td><td>' || buffers_checkpoint || '</td></tr>'
+    || '<tr><td>buffers_clean</td><td>' || buffers_clean || '</td></tr>'
+    || '<tr><td>maxwritten_clean</td><td>'
+    || CASE
+        WHEN maxwritten_clean > 0
+            THEN '<font color="red"><b>' || maxwritten_clean || '</b></font>'
+        ELSE '0'
+       END
+    || '</td></tr>'
+    || '<tr><td>buffers_backend</td><td>' || buffers_backend || '</td></tr>'
+    || '<tr><td>buffers_alloc</td><td>' || buffers_alloc || '</td></tr>'
+    || '<tr><td>stats_reset</td><td>' || COALESCE(to_char(stats_reset, 'YYYY-MM-DD HH24:MI:SS'), 'never') || '</td></tr>'
+FROM pg_stat_bgwriter;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: user_roles
+-- Database roles and users
+-- ============================================================================
+SELECT '<p class="section">Database Roles and Users</p>';
+SELECT '<table id="user_roles">'
+    || '<tr><th>Role</th><th>Super</th><th>CreateDB</th><th>CreateRole</th><th>Login</th><th>Replication</th><th>Connections</th><th>Expiry</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || rolname || '</td>'
+    || '<td>'
+    || CASE
+        WHEN rolsuper AND rolname <> 'postgres'
+            THEN '<font color="red"><b>YES</b></font>'
+        WHEN rolsuper
+            THEN 'YES'
+        ELSE 'no'
+       END
+    || '</td>'
+    || '<td>' || CASE WHEN rolcreatedb THEN 'YES' ELSE 'no' END || '</td>'
+    || '<td>' || CASE WHEN rolcreaterole THEN 'YES' ELSE 'no' END || '</td>'
+    || '<td>' || CASE WHEN rolcanlogin THEN 'YES' ELSE 'no' END || '</td>'
+    || '<td>' || CASE WHEN rolreplication THEN 'YES' ELSE 'no' END || '</td>'
+    || '<td>' || CASE WHEN rolconnlimit = -1 THEN 'unlimited' ELSE rolconnlimit::text END || '</td>'
+    || '<td>'
+    || CASE
+        WHEN rolvaliduntil IS NOT NULL AND rolvaliduntil < now()
+            THEN '<font color="red"><b>' || to_char(rolvaliduntil, 'YYYY-MM-DD HH24:MI:SS') || ' (EXPIRED)</b></font>'
+        WHEN rolvaliduntil IS NOT NULL
+            THEN to_char(rolvaliduntil, 'YYYY-MM-DD HH24:MI:SS')
+        ELSE 'never'
+       END
+    || '</td>'
+    || '</tr>'
+FROM pg_roles
+ORDER BY rolname;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: pg_hba_rules
+-- pg_hba.conf rules (PG 12+ has pg_hba_file_rules)
+-- ============================================================================
+SELECT '<p class="section">pg_hba.conf Rules</p>';
+SELECT '<table id="pg_hba_rules">'
+    || '<tr><th>Line</th><th>Type</th><th>Database</th><th>User</th><th>Address</th><th>Auth_Method</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || line_number || '</td>'
+    || '<td>' || COALESCE(type, '') || '</td>'
+    || '<td>' || COALESCE(array_to_string(database, ', '), '') || '</td>'
+    || '<td>' || COALESCE(array_to_string(user_name, ', '), '') || '</td>'
+    || '<td>' || COALESCE(address, '') || '</td>'
+    || '<td>'
+    || CASE
+        WHEN auth_method = 'trust'
+            THEN '<font color="red"><b>trust</b></font>'
+        ELSE COALESCE(auth_method, '')
+       END
+    || '</td>'
+    || '</tr>'
+FROM pg_hba_file_rules
+WHERE error IS NULL
+ORDER BY line_number;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: unused_indexes_detail
+-- Detailed unused index analysis
+-- ============================================================================
+SELECT '<p class="section">Unused Indexes (Detailed)</p>';
+SELECT '<table id="unused_indexes_detail">'
+    || '<tr><th>Schema</th><th>Table</th><th>Index</th><th>Size</th><th>Scans</th><th>Last_Used</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || s.schemaname || '</td>'
+    || '<td>' || s.relname || '</td>'
+    || '<td>'
+    || CASE
+        WHEN pg_relation_size(s.indexrelid) > 1048576 AND s.idx_scan = 0
+            THEN '<font color="red"><b>' || s.indexrelname || '</b></font>'
+        ELSE s.indexrelname
+       END
+    || '</td>'
+    || '<td>'
+    || CASE
+        WHEN pg_relation_size(s.indexrelid) > 1048576 AND s.idx_scan = 0
+            THEN '<font color="red"><b>' || pg_size_pretty(pg_relation_size(s.indexrelid)) || '</b></font>'
+        ELSE pg_size_pretty(pg_relation_size(s.indexrelid))
+       END
+    || '</td>'
+    || '<td>'
+    || CASE
+        WHEN s.idx_scan = 0
+            THEN '<font color="red"><b>0</b></font>'
+        ELSE s.idx_scan::text
+       END
+    || '</td>'
+    || '<td>' || COALESCE(to_char(s.last_idx_scan, 'YYYY-MM-DD HH24:MI:SS'), 'never') || '</td>'
+    || '</tr>'
+FROM pg_stat_user_indexes s
+JOIN pg_index i ON s.indexrelid = i.indexrelid
+WHERE NOT i.indisunique
+  AND NOT i.indisprimary
+  AND s.schemaname NOT IN ('pg_catalog', 'information_schema')
+  AND s.idx_scan = 0
+  AND pg_relation_size(s.indexrelid) > 0
+ORDER BY pg_relation_size(s.indexrelid) DESC
+LIMIT 50;
+
+SELECT '</table>';
+
+-- ============================================================================
+-- Table: database_stats
+-- pg_stat_database statistics
+-- ============================================================================
+SELECT '<p class="section">Database Statistics</p>';
+SELECT '<table id="database_stats">'
+    || '<tr><th>Database</th><th>Commits</th><th>Rollbacks</th><th>Blks_Read</th><th>Blks_Hit</th><th>Conflicts</th><th>Deadlocks</th></tr>';
+
+SELECT '<tr>'
+    || '<td>' || datname || '</td>'
+    || '<td>' || xact_commit || '</td>'
+    || '<td>' || xact_rollback || '</td>'
+    || '<td>' || blks_read || '</td>'
+    || '<td>' || blks_hit || '</td>'
+    || '<td>' || conflicts || '</td>'
+    || '<td>'
+    || CASE
+        WHEN deadlocks > 0
+            THEN '<font color="red"><b>' || deadlocks || '</b></font>'
+        ELSE '0'
+       END
+    || '</td>'
+    || '</tr>'
+FROM pg_stat_database
+WHERE datname NOT LIKE 'template%'
+  AND datname IS NOT NULL
+ORDER BY datname;
 
 SELECT '</table>';
 

@@ -37,6 +37,9 @@ DECLARE @uptime NVARCHAR(128);
 DECLARE @port NVARCHAR(20);
 DECLARE @edition NVARCHAR(256);
 DECLARE @collation NVARCHAR(256);
+DECLARE @product_level NVARCHAR(128);
+DECLARE @server_memory NVARCHAR(128);
+DECLARE @cpu_count NVARCHAR(20);
 
 SET @dbversion = @@VERSION;
 SET @hostname = CAST(SERVERPROPERTY('MachineName') AS NVARCHAR(256));
@@ -45,6 +48,18 @@ IF @dbname IS NULL SET @dbname = N'MSSQLSERVER';
 SET @checkdate = CONVERT(NVARCHAR(20), GETDATE(), 23); -- YYYY-MM-DD
 SET @edition = CAST(SERVERPROPERTY('Edition') AS NVARCHAR(256));
 SET @collation = CAST(SERVERPROPERTY('Collation') AS NVARCHAR(256));
+SET @product_level = CAST(SERVERPROPERTY('ProductLevel') AS NVARCHAR(128));
+
+-- Server memory and CPU
+BEGIN TRY
+    SELECT @server_memory = CAST(CAST(physical_memory_kb / 1024.0 AS DECIMAL(18,0)) AS NVARCHAR(128)) + N' MB',
+           @cpu_count = CAST(cpu_count AS NVARCHAR(20))
+    FROM sys.dm_os_sys_info;
+END TRY
+BEGIN CATCH
+    SET @server_memory = N'N/A';
+    SET @cpu_count = N'N/A';
+END CATCH
 
 -- Uptime
 BEGIN TRY
@@ -85,6 +100,9 @@ SET @html = @html
     + N'<span id="port">' + @port + N'</span>' + @crlf
     + N'<span id="edition">' + @edition + N'</span>' + @crlf
     + N'<span id="collation">' + @collation + N'</span>' + @crlf
+    + N'<span id="product_level">' + @product_level + N'</span>' + @crlf
+    + N'<span id="server_memory">' + @server_memory + N'</span>' + @crlf
+    + N'<span id="cpu_count">' + @cpu_count + N'</span>' + @crlf
     + N'<hr>' + @crlf;
 
 -- ============================================================================
@@ -608,6 +626,455 @@ BEGIN CATCH
     SET @html = @html + N'<!-- security_audit error: ' + ERROR_MESSAGE() + N' -->' + @crlf
         + N'<table id="security_audit" border="1" width="90%" align="center">'
         + N'<tr><th>Setting</th><th>Value</th><th>Recommendation</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 11. server_config - Key server configuration settings
+-- Columns: Name, Value, Value_In_Use, Min, Max, Is_Dynamic
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT @section = @section
+        + N'<tr>'
+        + N'<td>' + c.name + N'</td>'
+        + N'<td>' + CAST(c.value AS NVARCHAR(30)) + N'</td>'
+        + CASE
+            WHEN c.name = N'max server memory (MB)' AND CAST(c.value_in_use AS BIGINT) = 2147483647
+            THEN N'<td><font color="red"><b>' + CAST(c.value_in_use AS NVARCHAR(30)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(c.value_in_use AS NVARCHAR(30)) + N'</td>'
+          END
+        + N'<td>' + CAST(c.minimum AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(c.maximum AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CASE c.is_dynamic WHEN 1 THEN N'Yes' ELSE N'No' END + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.configurations c
+    WHERE c.name IN (
+        N'max server memory (MB)',
+        N'min server memory (MB)',
+        N'max degree of parallelism',
+        N'cost threshold for parallelism',
+        N'optimize for ad hoc workloads',
+        N'max worker threads'
+    )
+    ORDER BY c.name;
+
+    SET @html = @html + N'<table id="server_config" border="1" width="90%" align="center">'
+        + N'<tr><th>Name</th><th>Value</th><th>Value_In_Use</th><th>Min</th><th>Max</th><th>Is_Dynamic</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- server_config error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="server_config" border="1" width="90%" align="center">'
+        + N'<tr><th>Name</th><th>Value</th><th>Value_In_Use</th><th>Min</th><th>Max</th><th>Is_Dynamic</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 12. database_info - All databases summary
+-- Columns: Database, State, Recovery_Model, Compatibility, Size_MB, Owner, Created
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT @section = @section
+        + N'<tr>'
+        + N'<td>' + d.name + N'</td>'
+        + N'<td>' + d.state_desc + N'</td>'
+        + CASE
+            WHEN d.recovery_model_desc = N'SIMPLE' AND d.database_id > 4
+            THEN N'<td><font color="red"><b>' + d.recovery_model_desc + N'</b></font></td>'
+            ELSE N'<td>' + d.recovery_model_desc + N'</td>'
+          END
+        + N'<td>' + CAST(d.compatibility_level AS NVARCHAR(10)) + N'</td>'
+        + N'<td>' + CAST(CAST(SUM(mf.size) * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + ISNULL(SUSER_SNAME(d.owner_sid), N'N/A') + N'</td>'
+        + N'<td>' + CONVERT(NVARCHAR(20), d.create_date, 120) + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.databases d
+    JOIN sys.master_files mf ON d.database_id = mf.database_id
+    GROUP BY d.name, d.state_desc, d.recovery_model_desc, d.compatibility_level,
+             d.owner_sid, d.create_date, d.database_id
+    ORDER BY d.name;
+
+    SET @html = @html + N'<table id="database_info" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>State</th><th>Recovery_Model</th><th>Compatibility</th><th>Size_MB</th><th>Owner</th><th>Created</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- database_info error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="database_info" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>State</th><th>Recovery_Model</th><th>Compatibility</th><th>Size_MB</th><th>Owner</th><th>Created</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 13. disk_space - Database file I/O stats
+-- Columns: Database, File, Type, Size_MB, Reads, Writes, Read_Latency_ms, Write_Latency_ms
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT @section = @section
+        + N'<tr>'
+        + N'<td>' + DB_NAME(vfs.database_id) + N'</td>'
+        + N'<td>' + mf.physical_name + N'</td>'
+        + N'<td>' + mf.type_desc + N'</td>'
+        + N'<td>' + CAST(CAST(mf.size * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(vfs.num_of_reads AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(vfs.num_of_writes AS NVARCHAR(30)) + N'</td>'
+        + CASE
+            WHEN vfs.num_of_reads > 0 AND (vfs.io_stall_read_ms / vfs.num_of_reads) > 50
+            THEN N'<td><font color="red"><b>' + CAST(CAST(vfs.io_stall_read_ms * 1.0 / vfs.num_of_reads AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(CASE WHEN vfs.num_of_reads > 0 THEN CAST(vfs.io_stall_read_ms * 1.0 / vfs.num_of_reads AS DECIMAL(12,2)) ELSE 0 END AS NVARCHAR(30)) + N'</td>'
+          END
+        + CASE
+            WHEN vfs.num_of_writes > 0 AND (vfs.io_stall_write_ms / vfs.num_of_writes) > 50
+            THEN N'<td><font color="red"><b>' + CAST(CAST(vfs.io_stall_write_ms * 1.0 / vfs.num_of_writes AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(CASE WHEN vfs.num_of_writes > 0 THEN CAST(vfs.io_stall_write_ms * 1.0 / vfs.num_of_writes AS DECIMAL(12,2)) ELSE 0 END AS NVARCHAR(30)) + N'</td>'
+          END
+        + N'</tr>' + @crlf
+    FROM sys.dm_io_virtual_file_stats(NULL, NULL) vfs
+    JOIN sys.master_files mf ON vfs.database_id = mf.database_id AND vfs.file_id = mf.file_id
+    ORDER BY vfs.io_stall DESC;
+
+    SET @html = @html + N'<table id="disk_space" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>File</th><th>Type</th><th>Size_MB</th><th>Reads</th><th>Writes</th><th>Read_Latency_ms</th><th>Write_Latency_ms</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- disk_space error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="disk_space" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>File</th><th>Type</th><th>Size_MB</th><th>Reads</th><th>Writes</th><th>Read_Latency_ms</th><th>Write_Latency_ms</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 14. tempdb_usage - TempDB usage
+-- Columns: File, Size_MB, Used_MB, Free_MB, Usage_Pct
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT @section = @section
+        + N'<tr>'
+        + N'<td>' + mf.name + N'</td>'
+        + N'<td>' + CAST(CAST(mf.size * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(CAST(dsu.unallocated_extent_page_count * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(CAST((mf.size * 8.0 / 1024) - (dsu.unallocated_extent_page_count * 8.0 / 1024) AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + CASE
+            WHEN mf.size > 0 AND ((mf.size - dsu.unallocated_extent_page_count) * 100.0 / mf.size) > 80
+            THEN N'<td><font color="red"><b>' + CAST(CAST((mf.size - dsu.unallocated_extent_page_count) * 100.0 / mf.size AS DECIMAL(5,2)) AS NVARCHAR(10)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(CAST(CASE WHEN mf.size > 0 THEN (mf.size - dsu.unallocated_extent_page_count) * 100.0 / mf.size ELSE 0 END AS DECIMAL(5,2)) AS NVARCHAR(10)) + N'</td>'
+          END
+        + N'</tr>' + @crlf
+    FROM tempdb.sys.database_files mf
+    JOIN sys.dm_db_file_space_usage dsu ON mf.file_id = dsu.file_id
+    WHERE mf.type_desc = N'ROWS'
+    ORDER BY mf.file_id;
+
+    SET @html = @html + N'<table id="tempdb_usage" border="1" width="90%" align="center">'
+        + N'<tr><th>File</th><th>Size_MB</th><th>Used_MB</th><th>Free_MB</th><th>Usage_Pct</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- tempdb_usage error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="tempdb_usage" border="1" width="90%" align="center">'
+        + N'<tr><th>File</th><th>Size_MB</th><th>Used_MB</th><th>Free_MB</th><th>Usage_Pct</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 15. object_count - Object counts (current database)
+-- Columns: Database, Tables, Views, Procedures, Functions, Indexes
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT @section = @section
+        + N'<tr>'
+        + N'<td>' + DB_NAME() + N'</td>'
+        + N'<td>' + CAST(SUM(CASE WHEN o.type = 'U' THEN 1 ELSE 0 END) AS NVARCHAR(10)) + N'</td>'
+        + N'<td>' + CAST(SUM(CASE WHEN o.type = 'V' THEN 1 ELSE 0 END) AS NVARCHAR(10)) + N'</td>'
+        + N'<td>' + CAST(SUM(CASE WHEN o.type = 'P' THEN 1 ELSE 0 END) AS NVARCHAR(10)) + N'</td>'
+        + N'<td>' + CAST(SUM(CASE WHEN o.type IN ('FN','IF','TF','AF') THEN 1 ELSE 0 END) AS NVARCHAR(10)) + N'</td>'
+        + N'<td>' + CAST((SELECT COUNT(*) FROM sys.indexes WHERE object_id IN (SELECT object_id FROM sys.objects WHERE is_ms_shipped = 0) AND index_id > 0) AS NVARCHAR(10)) + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.objects o
+    WHERE o.is_ms_shipped = 0
+      AND o.type IN ('U','V','P','FN','IF','TF','AF');
+
+    SET @html = @html + N'<table id="object_count" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>Tables</th><th>Views</th><th>Procedures</th><th>Functions</th><th>Indexes</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- object_count error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="object_count" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>Tables</th><th>Views</th><th>Procedures</th><th>Functions</th><th>Indexes</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 16. blocking_sessions - Current blocking chains
+-- Columns: Blocked_SPID, Blocked_Query, Blocking_SPID, Blocking_Query, Wait_Type, Wait_Time_Sec
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT TOP 50 @section = @section
+        + N'<tr>'
+        + N'<td><font color="red"><b>' + CAST(blocked.session_id AS NVARCHAR(10)) + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + LEFT(ISNULL(CAST(bt.text AS NVARCHAR(MAX)), N''), 200) + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + CAST(blocked.blocking_session_id AS NVARCHAR(10)) + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + LEFT(ISNULL(CAST(blt.text AS NVARCHAR(MAX)), N''), 200) + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + ISNULL(blocked.wait_type, N'N/A') + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + CAST(CAST(blocked.wait_time / 1000.0 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</b></font></td>'
+        + N'</tr>' + @crlf
+    FROM sys.dm_exec_requests blocked
+    CROSS APPLY sys.dm_exec_sql_text(blocked.sql_handle) bt
+    LEFT JOIN sys.dm_exec_requests blocker ON blocked.blocking_session_id = blocker.session_id
+    OUTER APPLY sys.dm_exec_sql_text(blocker.sql_handle) blt
+    WHERE blocked.blocking_session_id > 0
+    ORDER BY blocked.wait_time DESC;
+
+    SET @html = @html + N'<table id="blocking_sessions" border="1" width="90%" align="center">'
+        + N'<tr><th>Blocked_SPID</th><th>Blocked_Query</th><th>Blocking_SPID</th><th>Blocking_Query</th><th>Wait_Type</th><th>Wait_Time_Sec</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- blocking_sessions error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="blocking_sessions" border="1" width="90%" align="center">'
+        + N'<tr><th>Blocked_SPID</th><th>Blocked_Query</th><th>Blocking_SPID</th><th>Blocking_Query</th><th>Wait_Type</th><th>Wait_Time_Sec</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 17. top_queries_by_cpu - Top CPU-consuming queries from plan cache
+-- Columns: CPU_Time_ms, Exec_Count, Avg_CPU_ms, Total_Reads, Query_Text
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT TOP 20 @section = @section
+        + N'<tr>'
+        + N'<td>' + CAST(qs.total_worker_time / 1000 AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(qs.execution_count AS NVARCHAR(20)) + N'</td>'
+        + CASE
+            WHEN (qs.total_worker_time / 1000) / NULLIF(qs.execution_count, 0) > 10000
+            THEN N'<td><font color="red"><b>' + CAST((qs.total_worker_time / 1000) / NULLIF(qs.execution_count, 0) AS NVARCHAR(30)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(ISNULL((qs.total_worker_time / 1000) / NULLIF(qs.execution_count, 0), 0) AS NVARCHAR(30)) + N'</td>'
+          END
+        + N'<td>' + CAST(qs.total_logical_reads AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + LEFT(ISNULL(CAST(t.text AS NVARCHAR(MAX)), N''), 300) + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.dm_exec_query_stats qs
+    CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) t
+    ORDER BY qs.total_worker_time DESC;
+
+    SET @html = @html + N'<table id="top_queries_by_cpu" border="1" width="90%" align="center">'
+        + N'<tr><th>CPU_Time_ms</th><th>Exec_Count</th><th>Avg_CPU_ms</th><th>Total_Reads</th><th>Query_Text</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- top_queries_by_cpu error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="top_queries_by_cpu" border="1" width="90%" align="center">'
+        + N'<tr><th>CPU_Time_ms</th><th>Exec_Count</th><th>Avg_CPU_ms</th><th>Total_Reads</th><th>Query_Text</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 18. missing_indexes - Missing index suggestions
+-- Columns: Database, Table, Equality_Columns, Inequality_Columns, Include_Columns, Impact, User_Seeks
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT TOP 20 @section = @section
+        + N'<tr>'
+        + N'<td>' + ISNULL(DB_NAME(mid.database_id), N'N/A') + N'</td>'
+        + N'<td>' + ISNULL(mid.statement, N'N/A') + N'</td>'
+        + N'<td>' + ISNULL(mid.equality_columns, N'') + N'</td>'
+        + N'<td>' + ISNULL(mid.inequality_columns, N'') + N'</td>'
+        + N'<td>' + ISNULL(mid.included_columns, N'') + N'</td>'
+        + CASE
+            WHEN CAST(migs.avg_total_user_cost * migs.avg_user_impact * (migs.user_seeks + migs.user_scans) AS DECIMAL(18,2)) > 100000
+            THEN N'<td><font color="red"><b>' + CAST(CAST(migs.avg_total_user_cost * migs.avg_user_impact * (migs.user_seeks + migs.user_scans) AS DECIMAL(18,2)) AS NVARCHAR(30)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(CAST(migs.avg_total_user_cost * migs.avg_user_impact * (migs.user_seeks + migs.user_scans) AS DECIMAL(18,2)) AS NVARCHAR(30)) + N'</td>'
+          END
+        + N'<td>' + CAST(migs.user_seeks AS NVARCHAR(20)) + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.dm_db_missing_index_details mid
+    JOIN sys.dm_db_missing_index_groups mig ON mid.index_handle = mig.index_handle
+    JOIN sys.dm_db_missing_index_group_stats migs ON mig.index_group_handle = migs.group_handle
+    ORDER BY migs.avg_total_user_cost * migs.avg_user_impact * (migs.user_seeks + migs.user_scans) DESC;
+
+    SET @html = @html + N'<table id="missing_indexes" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>Table</th><th>Equality_Columns</th><th>Inequality_Columns</th><th>Include_Columns</th><th>Impact</th><th>User_Seeks</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- missing_indexes error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="missing_indexes" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>Table</th><th>Equality_Columns</th><th>Inequality_Columns</th><th>Include_Columns</th><th>Impact</th><th>User_Seeks</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 19. table_no_pk - Tables without primary key (current database)
+-- Columns: Schema, Table, Rows, Size_MB
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT TOP 50 @section = @section
+        + N'<tr>'
+        + N'<td><font color="red"><b>' + s.name + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + t.name + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + CAST(ISNULL(p.row_cnt, 0) AS NVARCHAR(20)) + N'</b></font></td>'
+        + N'<td><font color="red"><b>' + CAST(CAST(ISNULL(p.total_pages * 8.0 / 1024, 0) AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</b></font></td>'
+        + N'</tr>' + @crlf
+    FROM sys.tables t
+    JOIN sys.schemas s ON t.schema_id = s.schema_id
+    LEFT JOIN (
+        SELECT object_id, SUM(rows) AS row_cnt, SUM(total_pages) AS total_pages
+        FROM sys.partitions p2
+        JOIN sys.allocation_units au ON p2.partition_id = au.container_id
+        WHERE p2.index_id IN (0, 1)
+        GROUP BY object_id
+    ) p ON t.object_id = p.object_id
+    WHERE t.is_ms_shipped = 0
+      AND NOT EXISTS (
+          SELECT 1 FROM sys.indexes i
+          WHERE i.object_id = t.object_id AND i.is_primary_key = 1
+      )
+    ORDER BY ISNULL(p.row_cnt, 0) DESC;
+
+    SET @html = @html + N'<table id="table_no_pk" border="1" width="90%" align="center">'
+        + N'<tr><th>Schema</th><th>Table</th><th>Rows</th><th>Size_MB</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- table_no_pk error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="table_no_pk" border="1" width="90%" align="center">'
+        + N'<tr><th>Schema</th><th>Table</th><th>Rows</th><th>Size_MB</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 20. top_tables_by_size - Largest tables (current database)
+-- Columns: Schema, Table, Rows, Total_Size_MB, Data_MB, Index_MB
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT TOP 20 @section = @section
+        + N'<tr>'
+        + N'<td>' + s.name + N'</td>'
+        + N'<td>' + t.name + N'</td>'
+        + N'<td>' + CAST(p.row_cnt AS NVARCHAR(20)) + N'</td>'
+        + CASE
+            WHEN (p.total_pages * 8.0 / 1024) > 10240
+            THEN N'<td><font color="red"><b>' + CAST(CAST(p.total_pages * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</b></font></td>'
+            ELSE N'<td>' + CAST(CAST(p.total_pages * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+          END
+        + N'<td>' + CAST(CAST(p.data_pages * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + N'<td>' + CAST(CAST((p.total_pages - p.data_pages) * 8.0 / 1024 AS DECIMAL(12,2)) AS NVARCHAR(30)) + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.tables t
+    JOIN sys.schemas s ON t.schema_id = s.schema_id
+    JOIN (
+        SELECT object_id,
+               SUM(rows) AS row_cnt,
+               SUM(total_pages) AS total_pages,
+               SUM(CASE WHEN au.type = 1 THEN au.total_pages ELSE 0 END) AS data_pages
+        FROM sys.partitions p2
+        JOIN sys.allocation_units au ON p2.partition_id = au.container_id
+        WHERE p2.index_id IN (0, 1)
+        GROUP BY object_id
+    ) p ON t.object_id = p.object_id
+    WHERE t.is_ms_shipped = 0
+    ORDER BY p.total_pages DESC;
+
+    SET @html = @html + N'<table id="top_tables_by_size" border="1" width="90%" align="center">'
+        + N'<tr><th>Schema</th><th>Table</th><th>Rows</th><th>Total_Size_MB</th><th>Data_MB</th><th>Index_MB</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- top_tables_by_size error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="top_tables_by_size" border="1" width="90%" align="center">'
+        + N'<tr><th>Schema</th><th>Table</th><th>Rows</th><th>Total_Size_MB</th><th>Data_MB</th><th>Index_MB</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 21. error_log_recent - Recent SQL Server error log entries
+-- Columns: LogDate, ProcessInfo, Text
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+
+    DECLARE @error_log TABLE (
+        LogDate DATETIME,
+        ProcessInfo NVARCHAR(256),
+        LogText NVARCHAR(MAX)
+    );
+
+    INSERT INTO @error_log (LogDate, ProcessInfo, LogText)
+    EXEC xp_readerrorlog 0, 1, N'Error', NULL, NULL, NULL, N'DESC';
+
+    INSERT INTO @error_log (LogDate, ProcessInfo, LogText)
+    EXEC xp_readerrorlog 0, 1, N'Severity', NULL, NULL, NULL, N'DESC';
+
+    SELECT TOP 50 @section = @section
+        + N'<tr>'
+        + N'<td>' + CONVERT(NVARCHAR(20), el.LogDate, 120) + N'</td>'
+        + N'<td>' + ISNULL(el.ProcessInfo, N'') + N'</td>'
+        + CASE
+            WHEN el.LogText LIKE N'%Severity: [1-2][0-9]%' OR el.LogText LIKE N'%Error:%'
+            THEN N'<td><font color="red"><b>' + LEFT(ISNULL(el.LogText, N''), 300) + N'</b></font></td>'
+            ELSE N'<td>' + LEFT(ISNULL(el.LogText, N''), 300) + N'</td>'
+          END
+        + N'</tr>' + @crlf
+    FROM @error_log el
+    ORDER BY el.LogDate DESC;
+
+    SET @html = @html + N'<table id="error_log_recent" border="1" width="90%" align="center">'
+        + N'<tr><th>LogDate</th><th>ProcessInfo</th><th>Text</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- error_log_recent error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="error_log_recent" border="1" width="90%" align="center">'
+        + N'<tr><th>LogDate</th><th>ProcessInfo</th><th>Text</th></tr>'
+        + N'</table>' + @crlf;
+END CATCH
+
+-- ============================================================================
+-- 22. database_users - Database users and roles (current database)
+-- Columns: Database, User, Type, Default_Schema, Roles
+-- ============================================================================
+BEGIN TRY
+    SET @section = N'';
+    SELECT @section = @section
+        + N'<tr>'
+        + N'<td>' + DB_NAME() + N'</td>'
+        + N'<td>' + dp.name + N'</td>'
+        + N'<td>' + dp.type_desc + N'</td>'
+        + N'<td>' + ISNULL(dp.default_schema_name, N'') + N'</td>'
+        + N'<td>' + ISNULL(STUFF((
+            SELECT N', ' + r.name
+            FROM sys.database_role_members drm
+            JOIN sys.database_principals r ON drm.role_principal_id = r.principal_id
+            WHERE drm.member_principal_id = dp.principal_id
+            FOR XML PATH(''), TYPE
+        ).value('.', 'NVARCHAR(MAX)'), 1, 2, N''), N'') + N'</td>'
+        + N'</tr>' + @crlf
+    FROM sys.database_principals dp
+    WHERE dp.type IN ('S', 'U', 'G', 'E', 'X')
+      AND dp.name NOT IN (N'sys', N'INFORMATION_SCHEMA', N'guest', N'public')
+      AND dp.name NOT LIKE N'##%'
+    ORDER BY dp.name;
+
+    SET @html = @html + N'<table id="database_users" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>User</th><th>Type</th><th>Default_Schema</th><th>Roles</th></tr>'
+        + @section + N'</table>' + @crlf;
+END TRY
+BEGIN CATCH
+    SET @html = @html + N'<!-- database_users error: ' + ERROR_MESSAGE() + N' -->' + @crlf
+        + N'<table id="database_users" border="1" width="90%" align="center">'
+        + N'<tr><th>Database</th><th>User</th><th>Type</th><th>Default_Schema</th><th>Roles</th></tr>'
         + N'</table>' + @crlf;
 END CATCH
 

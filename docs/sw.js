@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dbcheck-v1';
+const CACHE_NAME = 'dbcheck-v2';
 const PRECACHE_URLS = [
     '/',
     '/index.html',
@@ -11,7 +11,11 @@ const PRECACHE_URLS = [
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(function(cache) {
-            return cache.addAll(PRECACHE_URLS);
+            return Promise.all(PRECACHE_URLS.map(function(url) {
+                return cache.add(url).catch(function() {
+                    console.warn('Failed to precache:', url);
+                });
+            }));
         }).then(function() {
             return self.skipWaiting();
         })
@@ -52,7 +56,7 @@ self.addEventListener('fetch', function(event) {
                     var clone = response.clone();
                     caches.open(CACHE_NAME).then(function(cache) {
                         cache.put(event.request, clone);
-                    });
+                    }).catch(function() { /* quota exceeded or other cache error */ });
                 }
                 return response;
             }).catch(function() {
