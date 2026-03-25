@@ -1720,6 +1720,606 @@ ORDER BY m.MEMBER_ROLE DESC, m.MEMBER_HOST;
 SELECT '</table>' AS '';
 
 -- ============================================================
+-- Table: redo_log_config - InnoDB redo log sizing
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="redo_log_config" border="1" width="90%" align="center">',
+'<tr><td><b>Parameter</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Redo Log Total Size</td><td>',
+  redo_mb, ' MB',
+'</td><td>',
+  CASE
+    WHEN redo_mb < 256 THEN '<font color="red">Too small for production (&lt; 256 MB)</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM (
+  SELECT
+    CASE
+      WHEN (SELECT COUNT(*) FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_redo_log_capacity' AND VARIABLE_VALUE > 0) > 0
+        THEN (SELECT ROUND(CAST(VARIABLE_VALUE AS UNSIGNED) / 1024 / 1024, 2) FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_redo_log_capacity')
+      ELSE ROUND(
+        (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_log_file_size')
+        * (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_log_files_in_group')
+        / 1024 / 1024, 2)
+    END AS redo_mb
+) t;
+
+SELECT CONCAT(
+'<tr><td>innodb_redo_log_capacity</td><td>',
+  IFNULL(
+    (SELECT CONCAT(ROUND(CAST(VARIABLE_VALUE AS UNSIGNED) / 1024 / 1024, 2), ' MB')
+     FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_redo_log_capacity'),
+    'N/A (pre-8.0.30)'
+  ),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>innodb_log_file_size</td><td>',
+  ROUND(CAST((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_log_file_size') AS UNSIGNED) / 1024 / 1024, 2), ' MB',
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>innodb_log_files_in_group</td><td>',
+  (SELECT IFNULL(VARIABLE_VALUE, 'N/A') FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_log_files_in_group'),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>innodb_log_buffer_size</td><td>',
+  ROUND(CAST((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_log_buffer_size') AS UNSIGNED) / 1024 / 1024, 2), ' MB',
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: buffer_pool_hit - InnoDB Buffer Pool hit rate
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="buffer_pool_hit" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Buffer Pool Hit Rate</td><td>',
+  hit_rate, '%',
+'</td><td>',
+  CASE
+    WHEN hit_rate < 99 THEN '<font color="red">Below 99%</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM (
+  SELECT ROUND(
+    (1 - IFNULL(rd.v, 0) / NULLIF(reqs.v, 1)) * 100, 4
+  ) AS hit_rate
+  FROM
+    (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_reads') rd,
+    (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_read_requests') reqs
+) t;
+
+SELECT CONCAT(
+'<tr><td>Innodb_buffer_pool_read_requests (logical)</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_buffer_pool_read_requests';
+
+SELECT CONCAT(
+'<tr><td>Innodb_buffer_pool_reads (disk)</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_buffer_pool_reads';
+
+SELECT CONCAT(
+'<tr><td>Dirty Pages Ratio</td><td>',
+  dirty_ratio, '%',
+'</td><td>-</td></tr>'
+) AS ''
+FROM (
+  SELECT ROUND(
+    IFNULL(dp.v, 0) / NULLIF(tp.v, 0) * 100, 2
+  ) AS dirty_ratio
+  FROM
+    (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty') dp,
+    (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_pages_total') tp
+) t;
+
+SELECT CONCAT(
+'<tr><td>Innodb_buffer_pool_wait_free</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN CONCAT('<font color="red">', VARIABLE_VALUE, '</font>')
+    ELSE VARIABLE_VALUE
+  END,
+'</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN '<font color="red">Waits detected</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_buffer_pool_wait_free';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: password_policy - Password expiry and freshness
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="password_policy" border="1" width="90%" align="center">',
+'<tr><td><b>User</b></td><td><b>Host</b></td><td><b>password_expired</b></td><td><b>password_lifetime</b></td><td><b>password_last_changed</b></td><td><b>Days_Since_Change</b></td></tr>'
+) AS '';
+
+-- Show default_password_lifetime as first informational row
+SELECT CONCAT(
+'<tr><td>(global)</td><td>-</td><td>-</td><td>',
+  CASE
+    WHEN @@default_password_lifetime = 0 THEN CONCAT('<font color="red">', @@default_password_lifetime, ' (never expires)</font>')
+    ELSE CAST(@@default_password_lifetime AS CHAR)
+  END,
+'</td><td>-</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', u.User, '</td>',
+'<td>', u.Host, '</td>',
+'<td>',
+  CASE
+    WHEN u.password_expired = 'Y' THEN '<font color="red">Y</font>'
+    ELSE u.password_expired
+  END,
+'</td>',
+'<td>', IFNULL(u.password_lifetime, 'default'), '</td>',
+'<td>', IFNULL(u.password_last_changed, 'NULL'), '</td>',
+'<td>',
+  CASE
+    WHEN u.password_last_changed IS NULL THEN '<font color="red">Never changed</font>'
+    WHEN DATEDIFF(NOW(), u.password_last_changed) > 180 THEN CONCAT('<font color="red">', DATEDIFF(NOW(), u.password_last_changed), '</font>')
+    ELSE CAST(DATEDIFF(NOW(), u.password_last_changed) AS CHAR)
+  END,
+'</td>',
+'</tr>'
+) AS ''
+FROM mysql.user u
+WHERE u.User NOT IN ('mysql.sys', 'mysql.session', 'mysql.infoschema')
+ORDER BY u.password_last_changed ASC, u.User;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: table_stats_age - Tables with stale statistics
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="table_stats_age" border="1" width="90%" align="center">',
+'<tr><td><b>Schema</b></td><td><b>Table</b></td><td><b>Engine</b></td><td><b>Rows</b></td><td><b>Last_Analyzed</b></td><td><b>Days_Stale</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', TABLE_SCHEMA, '</td>',
+'<td>', TABLE_NAME, '</td>',
+'<td>', IFNULL(ENGINE, 'N/A'), '</td>',
+'<td>', IFNULL(TABLE_ROWS, 0), '</td>',
+'<td>', IFNULL(CAST(UPDATE_TIME AS CHAR), 'NULL'), '</td>',
+'<td>',
+  CASE
+    WHEN UPDATE_TIME IS NULL THEN '<font color="red">NULL (never analyzed)</font>'
+    WHEN DATEDIFF(NOW(), UPDATE_TIME) > 30 THEN CONCAT('<font color="red">', DATEDIFF(NOW(), UPDATE_TIME), '</font>')
+    ELSE CAST(DATEDIFF(NOW(), UPDATE_TIME) AS CHAR)
+  END,
+'</td>',
+'</tr>'
+) AS ''
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+  AND TABLE_TYPE = 'BASE TABLE'
+  AND (UPDATE_TIME IS NULL OR DATEDIFF(NOW(), UPDATE_TIME) > 30)
+ORDER BY
+  CASE WHEN UPDATE_TIME IS NULL THEN 1 ELSE 0 END DESC,
+  DATEDIFF(NOW(), IFNULL(UPDATE_TIME, '2000-01-01')) DESC
+LIMIT 20;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: fk_no_index - Foreign key columns without index
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="fk_no_index" border="1" width="90%" align="center">',
+'<tr><td><b>Schema</b></td><td><b>Table</b></td><td><b>Constraint_Name</b></td><td><b>Column_Name</b></td><td><b>Referenced_Table</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td><font color="red">', kcu.TABLE_SCHEMA, '</font></td>',
+'<td><font color="red">', kcu.TABLE_NAME, '</font></td>',
+'<td>', kcu.CONSTRAINT_NAME, '</td>',
+'<td><font color="red">', kcu.COLUMN_NAME, '</font></td>',
+'<td>', kcu.REFERENCED_TABLE_NAME, '</td>',
+'</tr>'
+) AS ''
+FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+  ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+  AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+  AND rc.TABLE_NAME = kcu.TABLE_NAME
+LEFT JOIN INFORMATION_SCHEMA.STATISTICS s
+  ON kcu.TABLE_SCHEMA = s.TABLE_SCHEMA
+  AND kcu.TABLE_NAME = s.TABLE_NAME
+  AND kcu.COLUMN_NAME = s.COLUMN_NAME
+WHERE s.INDEX_NAME IS NULL
+  AND kcu.TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+LIMIT 20;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: undo_history - InnoDB undo/purge health
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="undo_history" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>History List Length</td><td>',
+  IFNULL(hll.v, 'N/A'),
+'</td><td>',
+  CASE
+    WHEN hll.v IS NULL THEN 'N/A'
+    WHEN hll.v > 100000 THEN '<font color="red">Undo bloat risk (&gt; 100000)</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM (
+  SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v
+  FROM performance_schema.global_status
+  WHERE VARIABLE_NAME = 'Innodb_history_list_length'
+  LIMIT 1
+) hll;
+
+SELECT CONCAT(
+'<tr><td>innodb_undo_tablespaces</td><td>',
+  IFNULL((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_undo_tablespaces'), 'N/A'),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>innodb_max_undo_log_size</td><td>',
+  IFNULL(
+    (SELECT CONCAT(ROUND(CAST(VARIABLE_VALUE AS UNSIGNED) / 1024 / 1024, 2), ' MB')
+     FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_max_undo_log_size'),
+    'N/A'
+  ),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>innodb_undo_log_truncate</td><td>',
+  IFNULL((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_undo_log_truncate'), 'N/A'),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: thread_pool_status - Thread pool and thread status
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="thread_pool_status" border="1" width="90%" align="center">',
+'<tr><td><b>Parameter</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>thread_handling</td><td>',
+  IFNULL((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'thread_handling'), 'one-thread-per-connection'),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>thread_pool_size</td><td>',
+  IFNULL((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'thread_pool_size'), 'N/A'),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Threads_connected</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Threads_connected';
+
+SELECT CONCAT(
+'<tr><td>Threads_running</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 50 THEN CONCAT('<font color="red">', VARIABLE_VALUE, '</font>')
+    ELSE VARIABLE_VALUE
+  END,
+'</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 50 THEN '<font color="red">High concurrency pressure</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Threads_running';
+
+SELECT CONCAT(
+'<tr><td>Threads_cached</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Threads_cached';
+
+SELECT CONCAT(
+'<tr><td>Threads_created</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Threads_created';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: deadlock_count - Deadlock monitoring
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="deadlock_count" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>lock_deadlocks (INNODB_METRICS)</td><td>',
+  IFNULL(im.cnt, 'N/A'),
+'</td><td>',
+  CASE
+    WHEN im.cnt IS NULL THEN 'N/A'
+    WHEN im.cnt > 0 THEN '<font color="red">Deadlocks detected</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM (SELECT 1 AS dummy) d
+LEFT JOIN (
+  SELECT CAST(COUNT_RESET AS UNSIGNED) AS cnt
+  FROM information_schema.INNODB_METRICS
+  WHERE NAME = 'lock_deadlocks'
+  LIMIT 1
+) im ON 1=1;
+
+SELECT CONCAT(
+'<tr><td>Innodb_deadlocks (global status)</td><td>',
+  IFNULL(gs.VARIABLE_VALUE, 'N/A'),
+'</td><td>',
+  CASE
+    WHEN gs.VARIABLE_VALUE IS NULL THEN 'N/A'
+    WHEN CAST(gs.VARIABLE_VALUE AS UNSIGNED) > 0 THEN '<font color="red">Deadlocks detected</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM (SELECT 1 AS dummy) d
+LEFT JOIN performance_schema.global_status gs
+  ON gs.VARIABLE_NAME = 'Innodb_deadlocks';
+
+SELECT CONCAT(
+'<tr><td>innodb_print_all_deadlocks</td><td>',
+  IFNULL((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_print_all_deadlocks'), 'N/A'),
+'</td><td>',
+  CASE
+    WHEN (SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_print_all_deadlocks') = 'OFF'
+      THEN '<font color="red">Should be ON for production</font>'
+    WHEN (SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_print_all_deadlocks') = 'ON'
+      THEN 'OK'
+    ELSE 'N/A'
+  END,
+'</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>innodb_deadlock_detect</td><td>',
+  IFNULL((SELECT VARIABLE_VALUE FROM performance_schema.global_variables WHERE VARIABLE_NAME = 'innodb_deadlock_detect'), 'N/A'),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: connection_hosts - Connection source IP distribution
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="connection_hosts" border="1" width="90%" align="center">',
+'<tr><td><b>Host</b></td><td><b>Current_Connections</b></td><td><b>Total_Connections</b></td><td><b>Pct</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', h.HOST, '</td>',
+'<td>',
+  CASE
+    WHEN h.CURRENT_CONNECTIONS > (@@max_connections * 0.5) THEN CONCAT('<font color="red">', h.CURRENT_CONNECTIONS, '</font>')
+    ELSE CAST(h.CURRENT_CONNECTIONS AS CHAR)
+  END,
+'</td>',
+'<td>', h.TOTAL_CONNECTIONS, '</td>',
+'<td>',
+  CASE
+    WHEN ROUND(h.CURRENT_CONNECTIONS / NULLIF(@@max_connections, 0) * 100, 2) > 50
+      THEN CONCAT('<font color="red">', ROUND(h.CURRENT_CONNECTIONS / NULLIF(@@max_connections, 0) * 100, 2), '%</font>')
+    ELSE CONCAT(ROUND(h.CURRENT_CONNECTIONS / NULLIF(@@max_connections, 0) * 100, 2), '%')
+  END,
+'</td>',
+'</tr>'
+) AS ''
+FROM performance_schema.hosts h
+WHERE h.HOST IS NOT NULL
+  AND h.HOST != 'localhost'
+ORDER BY h.CURRENT_CONNECTIONS DESC
+LIMIT 15;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: open_files_usage - Open files usage ratio
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="open_files_usage" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Open_files / open_files_limit</td><td>',
+  ofu.v, ' / ', @@open_files_limit,
+'</td><td>',
+  CASE
+    WHEN ROUND(ofu.v / NULLIF(@@open_files_limit, 0) * 100, 2) > 80
+      THEN CONCAT('<font color="red">', ROUND(ofu.v / NULLIF(@@open_files_limit, 0) * 100, 2), '% - Approaching limit</font>')
+    ELSE CONCAT(ROUND(ofu.v / NULLIF(@@open_files_limit, 0) * 100, 2), '% OK')
+  END,
+'</td></tr>'
+) AS ''
+FROM (
+  SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v
+  FROM performance_schema.global_status
+  WHERE VARIABLE_NAME = 'Open_files'
+) ofu;
+
+SELECT CONCAT(
+'<tr><td>Open_tables</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Open_tables';
+
+SELECT CONCAT(
+'<tr><td>table_open_cache</td><td>',
+  @@table_open_cache,
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Table_open_cache_overflows</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN CONCAT('<font color="red">', VARIABLE_VALUE, '</font>')
+    ELSE VARIABLE_VALUE
+  END,
+'</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN '<font color="red">Overflows detected - consider increasing table_open_cache</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Table_open_cache_overflows';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: binlog_disk_usage - Binary log disk usage estimation
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="binlog_disk_usage" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>log_bin</td><td>',
+  CASE
+    WHEN @@log_bin = 0 THEN '<font color="red">OFF</font>'
+    ELSE 'ON'
+  END,
+'</td><td>',
+  CASE
+    WHEN @@log_bin = 0 THEN '<font color="red">Binlog未开启</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Binlog Write Bytes (estimated)</td><td>',
+  IFNULL(
+    (SELECT CONCAT(ROUND(SUM(SUM_NUMBER_OF_BYTES_WRITE) / 1024 / 1024, 2), ' MB')
+     FROM performance_schema.file_summary_by_instance
+     WHERE EVENT_NAME LIKE '%binlog%'),
+    'N/A'
+  ),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Binlog Write Count</td><td>',
+  IFNULL(
+    (SELECT SUM(COUNT_WRITE)
+     FROM performance_schema.file_summary_by_instance
+     WHERE EVENT_NAME LIKE '%binlog%'),
+    'N/A'
+  ),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Binlog Read Count</td><td>',
+  IFNULL(
+    (SELECT SUM(COUNT_READ)
+     FROM performance_schema.file_summary_by_instance
+     WHERE EVENT_NAME LIKE '%binlog%'),
+    'N/A'
+  ),
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>binlog_expire_logs_seconds</td><td>',
+  @@binlog_expire_logs_seconds,
+'</td><td>',
+  CASE
+    WHEN @@binlog_expire_logs_seconds = 0 THEN '<font color="red">No auto-purge</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>max_binlog_size</td><td>',
+  ROUND(@@max_binlog_size / 1024 / 1024, 2), ' MB',
+'</td><td>-</td></tr>'
+) AS '';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
 -- Footer
 -- ============================================================
 

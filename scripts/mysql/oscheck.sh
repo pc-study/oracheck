@@ -295,6 +295,48 @@ function get_mysql_info() {
     fi
     echo
 
+    # MySQL 错误日志摘要（最近 7 天的 ERROR 和 Warning 统计）
+    echo "error_log_summary"
+    if [[ -n "$mysql_error_log" ]] && check_file "$mysql_error_log"; then
+        # 计算 7 天前的日期字符串（兼容 GNU date）
+        local _date_7d_ago
+        _date_7d_ago=$(date -d '7 days ago' '+%Y-%m-%d' 2>/dev/null)
+        if [[ -z "$_date_7d_ago" ]]; then
+            # macOS fallback
+            _date_7d_ago=$(date -v-7d '+%Y-%m-%d' 2>/dev/null)
+        fi
+        # 提取最近 7 天的日志行（按日期前缀过滤，若无法过滤则使用全文件）
+        local _recent_log
+        if [[ -n "$_date_7d_ago" ]]; then
+            _recent_log=$(awk -v d="$_date_7d_ago" '$0 >= d || /^[^0-9]/' "$mysql_error_log" 2>/dev/null)
+        else
+            _recent_log=$(cat "$mysql_error_log" 2>/dev/null)
+        fi
+        # 统计 ERROR 和 Warning 数量
+        local _error_count _warning_count
+        _error_count=$(echo "$_recent_log" | grep -c '\[ERROR\]' 2>/dev/null || echo 0)
+        _warning_count=$(echo "$_recent_log" | grep -c '\[Warning\]' 2>/dev/null || echo 0)
+        echo "Total_Errors | ${_error_count}"
+        echo "Total_Warnings | ${_warning_count}"
+        echo "--- Recent Errors ---"
+        # 提取最近的 ERROR 行，去重并统计出现次数，取最后 10 条
+        echo "$_recent_log" | grep '\[ERROR\]' 2>/dev/null \
+            | sed 's/^[0-9T:\.\+\/ -]*//' \
+            | sort | uniq -c | sort -rn | head -n 10 \
+            | while read -r _cnt _rest; do
+                echo "${_cnt} | [ERROR] | ${_rest#*\[ERROR\] }"
+            done
+        # 如果没有任何 ERROR 记录
+        if [[ "$_error_count" -eq 0 ]]; then
+            echo "No errors found in the last 7 days"
+        fi
+    else
+        echo "Total_Errors | N/A"
+        echo "Total_Warnings | N/A"
+        echo "error log 未找到或不可读"
+    fi
+    echo
+
     # MySQL 关键配置参数
     echo "mysql_conf"
     $mysql_cmd -N -B -e "
@@ -352,6 +394,29 @@ WHERE variable_name IN (
 )
 ORDER BY variable_name;
 " 2>/dev/null
+    echo
+
+    # MySQL Binlog 磁盘使用统计
+    echo "binlog_disk_usage_os"
+    local _binlog_output
+    _binlog_output=$($mysql_cmd -N -B -e "SHOW BINARY LOGS;" 2>/dev/null)
+    if [[ -n "$_binlog_output" ]]; then
+        local _file_count _total_bytes _largest_file _largest_size
+        _file_count=$(echo "$_binlog_output" | wc -l | tr -d '[:space:]')
+        _total_bytes=$(echo "$_binlog_output" | awk '{s+=$2} END {print s+0}')
+        _total_mb=$(echo "$_total_bytes" | awk '{printf "%.1f", $1/1024/1024}')
+        # 找到最大的 binlog 文件
+        _largest_file=$(echo "$_binlog_output" | awk '{if($2+0 > max) {max=$2+0; name=$1}} END {print name}')
+        _largest_size=$(echo "$_binlog_output" | awk '{if($2+0 > max) {max=$2+0}} END {print max+0}')
+        echo "File_Count | ${_file_count}"
+        echo "Total_Size_MB | ${_total_mb}"
+        echo "Largest_File | ${_largest_file} | ${_largest_size}"
+    else
+        echo "File_Count | 0"
+        echo "Total_Size_MB | 0"
+        echo "Largest_File | N/A | 0"
+        echo "binlog 未启用或无法查询"
+    fi
     echo
 }
 #==============================================================#
