@@ -189,10 +189,10 @@ SELECT CONCAT(
 ) AS ''
 FROM (
   SELECT ROUND(
-    (1 - IFNULL(reads.v, 0) / NULLIF(reqs.v, 0)) * 100, 2
+    (1 - IFNULL(rd.v, 0) / NULLIF(reqs.v, 0)) * 100, 2
   ) AS hit_rate
   FROM
-    (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_reads') reads,
+    (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_reads') rd,
     (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_read_requests') reqs
 ) t;
 
@@ -273,58 +273,87 @@ SELECT CONCAT(
 '<tr><td><b>Parameter</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
 ) AS '';
 
--- Use a procedure-like approach to handle empty replication status
--- When not a slave, output a single informational row
+-- Read replication status from performance_schema (MySQL 8.0+)
+-- If replication is not configured, these tables are empty and we output N/A
 SELECT CONCAT(
 '<tr><td>Slave_IO_Running</td><td>',
-  IFNULL(sio, 'N/A'),
+  IFNULL(rcs.SERVICE_STATE, 'N/A'),
 '</td><td>',
   CASE
-    WHEN sio IS NULL THEN 'Not Configured'
-    WHEN sio != 'Yes' THEN '<font color="red">STOPPED</font>'
+    WHEN rcs.SERVICE_STATE IS NULL THEN 'Not Configured'
+    WHEN rcs.SERVICE_STATE != 'ON' THEN '<font color="red">STOPPED</font>'
     ELSE 'OK'
   END,
-'</td></tr>',
+'</td></tr>'
+) AS ''
+FROM (SELECT 1 AS dummy) d
+LEFT JOIN performance_schema.replication_connection_status rcs
+  ON rcs.CHANNEL_NAME = ''
+LIMIT 1;
+
+SELECT CONCAT(
 '<tr><td>Slave_SQL_Running</td><td>',
-  IFNULL(ssql, 'N/A'),
+  IFNULL(ras.SERVICE_STATE, 'N/A'),
 '</td><td>',
   CASE
-    WHEN ssql IS NULL THEN 'Not Configured'
-    WHEN ssql != 'Yes' THEN '<font color="red">STOPPED</font>'
+    WHEN ras.SERVICE_STATE IS NULL THEN 'Not Configured'
+    WHEN ras.SERVICE_STATE != 'ON' THEN '<font color="red">STOPPED</font>'
     ELSE 'OK'
   END,
-'</td></tr>',
+'</td></tr>'
+) AS ''
+FROM (SELECT 1 AS dummy) d
+LEFT JOIN performance_schema.replication_applier_status ras
+  ON ras.CHANNEL_NAME = ''
+LIMIT 1;
+
+SELECT CONCAT(
 '<tr><td>Seconds_Behind_Master</td><td>',
-  IFNULL(sbm, 'N/A'),
+  CASE
+    WHEN rcs.SERVICE_STATE IS NULL THEN 'N/A'
+    ELSE IFNULL(
+      CAST(TIMESTAMPDIFF(SECOND,
+        aw.APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,
+        NOW()
+      ) AS CHAR), 'N/A')
+  END,
 '</td><td>',
   CASE
-    WHEN sbm IS NULL THEN 'Not Configured'
-    WHEN CAST(sbm AS UNSIGNED) > 60 THEN '<font color="red">LAG</font>'
+    WHEN rcs.SERVICE_STATE IS NULL THEN 'Not Configured'
+    WHEN aw.APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP IS NULL THEN 'OK'
+    WHEN TIMESTAMPDIFF(SECOND,
+      aw.APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP, NOW()) > 60
+      THEN '<font color="red">LAG</font>'
     ELSE 'OK'
   END,
-'</td></tr>',
+'</td></tr>'
+) AS ''
+FROM (SELECT 1 AS dummy) d
+LEFT JOIN performance_schema.replication_connection_status rcs
+  ON rcs.CHANNEL_NAME = ''
+LEFT JOIN performance_schema.replication_applier_status_by_worker aw
+  ON aw.CHANNEL_NAME = '' AND aw.WORKER_ID = 0
+LIMIT 1;
+
+SELECT CONCAT(
 '<tr><td>Master_Host</td><td>',
-  IFNULL(mhost, 'N/A'),
+  IFNULL(rcc.HOST, 'N/A'),
 '</td><td>-</td></tr>',
 '<tr><td>Relay_Log_Space</td><td>',
-  IFNULL(rlspace, 'N/A'),
+  IFNULL(
+    CONCAT(ROUND(rcs.RECEIVED_TRANSACTION_SET_SIZE / 1024 / 1024, 2), ' MB'),
+    'N/A'),
 '</td><td>-</td></tr>'
 ) AS ''
-FROM (
-  SELECT
-    MAX(CASE WHEN col = 'Slave_IO_Running' THEN val END) AS sio,
-    MAX(CASE WHEN col = 'Slave_SQL_Running' THEN val END) AS ssql,
-    MAX(CASE WHEN col = 'Seconds_Behind_Master' THEN val END) AS sbm,
-    MAX(CASE WHEN col = 'Master_Host' THEN val END) AS mhost,
-    MAX(CASE WHEN col = 'Relay_Log_Space' THEN val END) AS rlspace
-  FROM (
-    SELECT 'Slave_IO_Running' AS col, NULL AS val
-    UNION ALL SELECT 'Slave_SQL_Running', NULL
-    UNION ALL SELECT 'Seconds_Behind_Master', NULL
-    UNION ALL SELECT 'Master_Host', NULL
-    UNION ALL SELECT 'Relay_Log_Space', NULL
-  ) defaults
-) t;
+FROM (SELECT 1 AS dummy) d
+LEFT JOIN performance_schema.replication_connection_configuration rcc
+  ON rcc.CHANNEL_NAME = ''
+LEFT JOIN (
+  SELECT CHANNEL_NAME,
+    LENGTH(RECEIVED_TRANSACTION_SET) AS RECEIVED_TRANSACTION_SET_SIZE
+  FROM performance_schema.replication_connection_status
+) rcs ON rcs.CHANNEL_NAME = ''
+LIMIT 1;
 
 SELECT '</table>' AS '';
 
@@ -1070,6 +1099,623 @@ SELECT CONCAT(
 FROM
   (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Created_tmp_disk_tables') d,
   (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Created_tmp_tables') t;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: innodb_status - InnoDB engine health metrics
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="innodb_status" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Description</b></td></tr>'
+) AS '';
+
+-- Innodb_row_lock_waits
+SELECT CONCAT(
+'<tr><td>Innodb_row_lock_waits</td><td>',
+  VARIABLE_VALUE,
+'</td><td>Total row lock waits since startup</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_row_lock_waits';
+
+-- Innodb_row_lock_time_avg
+SELECT CONCAT(
+'<tr><td>Innodb_row_lock_time_avg</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 500 THEN CONCAT('<font color="red">', VARIABLE_VALUE, ' ms</font>')
+    ELSE CONCAT(VARIABLE_VALUE, ' ms')
+  END,
+'</td><td>Average row lock wait time in ms (red if &gt; 500)</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_row_lock_time_avg';
+
+-- Innodb_deadlocks
+SELECT CONCAT(
+'<tr><td>Innodb_deadlocks</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN CONCAT('<font color="red">', VARIABLE_VALUE, '</font>')
+    ELSE VARIABLE_VALUE
+  END,
+'</td><td>Total deadlocks since startup (red if &gt; 0)</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_deadlocks';
+
+-- Innodb_buffer_pool_wait_free
+SELECT CONCAT(
+'<tr><td>Innodb_buffer_pool_wait_free</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN CONCAT('<font color="red">', VARIABLE_VALUE, '</font>')
+    ELSE VARIABLE_VALUE
+  END,
+'</td><td>Waits for free buffer pool page (red if &gt; 0)</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_buffer_pool_wait_free';
+
+-- Innodb_log_waits
+SELECT CONCAT(
+'<tr><td>Innodb_log_waits</td><td>',
+  CASE
+    WHEN CAST(VARIABLE_VALUE AS UNSIGNED) > 0 THEN CONCAT('<font color="red">', VARIABLE_VALUE, '</font>')
+    ELSE VARIABLE_VALUE
+  END,
+'</td><td>Log buffer too small, had to wait for flush (red if &gt; 0)</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Innodb_log_waits';
+
+-- Innodb_data_reads/s and Innodb_data_writes/s
+SELECT CONCAT(
+'<tr><td>Innodb_data_reads/s</td><td>',
+  ROUND(dr.v / NULLIF(u.v, 0), 2),
+'</td><td>InnoDB data reads per second</td></tr>',
+'<tr><td>Innodb_data_writes/s</td><td>',
+  ROUND(dw.v / NULLIF(u.v, 0), 2),
+'</td><td>InnoDB data writes per second</td></tr>'
+) AS ''
+FROM
+  (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_data_reads') dr,
+  (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_data_writes') dw,
+  (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Uptime') u;
+
+-- Innodb_os_log_written/s (KB/s)
+SELECT CONCAT(
+'<tr><td>Innodb_os_log_written/s</td><td>',
+  ROUND(lw.v / NULLIF(u.v, 0) / 1024, 2), ' KB/s',
+'</td><td>InnoDB redo log write rate</td></tr>'
+) AS ''
+FROM
+  (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_os_log_written') lw,
+  (SELECT CAST(VARIABLE_VALUE AS UNSIGNED) AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Uptime') u;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: table_fragmentation - Tables with data fragmentation
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="table_fragmentation" border="1" width="90%" align="center">',
+'<tr><td><b>Schema</b></td><td><b>Table</b></td><td><b>Engine</b></td><td><b>Row_Cnt</b></td><td><b>Data_MB</b></td><td><b>Free_MB</b></td><td><b>Frag_Pct</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', TABLE_SCHEMA, '</td>',
+'<td>', TABLE_NAME, '</td>',
+'<td>', IFNULL(ENGINE, 'N/A'), '</td>',
+'<td>', IFNULL(TABLE_ROWS, 0), '</td>',
+'<td>', ROUND(IFNULL(DATA_LENGTH, 0) / 1024 / 1024, 2), '</td>',
+'<td>', ROUND(IFNULL(DATA_FREE, 0) / 1024 / 1024, 2), '</td>',
+'<td>',
+  CASE
+    WHEN ROUND(IFNULL(DATA_FREE, 0) / NULLIF(IFNULL(DATA_LENGTH, 0) + IFNULL(INDEX_LENGTH, 0) + IFNULL(DATA_FREE, 0), 0) * 100, 2) > 30
+      THEN CONCAT('<font color="red">', ROUND(IFNULL(DATA_FREE, 0) / NULLIF(IFNULL(DATA_LENGTH, 0) + IFNULL(INDEX_LENGTH, 0) + IFNULL(DATA_FREE, 0), 0) * 100, 2), '%</font>')
+    ELSE CONCAT(ROUND(IFNULL(DATA_FREE, 0) / NULLIF(IFNULL(DATA_LENGTH, 0) + IFNULL(INDEX_LENGTH, 0) + IFNULL(DATA_FREE, 0), 0) * 100, 2), '%')
+  END,
+'</td>',
+'</tr>'
+) AS ''
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+  AND TABLE_TYPE = 'BASE TABLE'
+  AND DATA_FREE > 10 * 1024 * 1024
+ORDER BY IFNULL(DATA_FREE, 0) / NULLIF(IFNULL(DATA_LENGTH, 0) + IFNULL(INDEX_LENGTH, 0) + IFNULL(DATA_FREE, 0), 0) DESC
+LIMIT 20;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: top_sql - Top 10 SQL by average execution time
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="top_sql" border="1" width="90%" align="center">',
+'<tr><td><b>Schema</b></td><td><b>Digest_Text</b></td><td><b>Exec_Count</b></td><td><b>Avg_Time_ms</b></td><td><b>Total_Time_s</b></td><td><b>Rows_Examined_Avg</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', IFNULL(SCHEMA_NAME, 'N/A'), '</td>',
+'<td>', IFNULL(LEFT(DIGEST_TEXT, 80), 'N/A'), '</td>',
+'<td>', COUNT_STAR, '</td>',
+'<td>',
+  CASE
+    WHEN ROUND(AVG_TIMER_WAIT / 1000000000, 2) > 1000
+      THEN CONCAT('<font color="red">', ROUND(AVG_TIMER_WAIT / 1000000000, 2), '</font>')
+    ELSE CAST(ROUND(AVG_TIMER_WAIT / 1000000000, 2) AS CHAR)
+  END,
+'</td>',
+'<td>', ROUND(SUM_TIMER_WAIT / 1000000000000, 2), '</td>',
+'<td>', IFNULL(ROUND(SUM_ROWS_EXAMINED / NULLIF(COUNT_STAR, 0), 0), 0), '</td>',
+'</tr>'
+) AS ''
+FROM performance_schema.events_statements_summary_by_digest
+WHERE SUM_TIMER_WAIT > 0
+  AND SCHEMA_NAME IS NOT NULL
+  AND SCHEMA_NAME NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+ORDER BY AVG_TIMER_WAIT DESC
+LIMIT 10;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: wait_events - Top 10 non-idle wait events
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="wait_events" border="1" width="90%" align="center">',
+'<tr><td><b>Event_Name</b></td><td><b>Cnt</b></td><td><b>Total_Time_s</b></td><td><b>Avg_Time_us</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', EVENT_NAME, '</td>',
+'<td>', COUNT_STAR, '</td>',
+'<td>', ROUND(SUM_TIMER_WAIT / 1000000000000, 2), '</td>',
+'<td>', ROUND(AVG_TIMER_WAIT / 1000000, 2), '</td>',
+'</tr>'
+) AS ''
+FROM performance_schema.events_waits_summary_global_by_event_name
+WHERE COUNT_STAR > 0
+  AND EVENT_NAME NOT LIKE 'idle%'
+  AND EVENT_NAME NOT LIKE '%/idle/%'
+ORDER BY SUM_TIMER_WAIT DESC
+LIMIT 10;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: charset_audit - Tables not using utf8mb4
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="charset_audit" border="1" width="90%" align="center">',
+'<tr><td><b>Schema</b></td><td><b>Table</b></td><td><b>Table_Charset</b></td><td><b>Table_Collation</b></td><td><b>Col_Count</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', t.TABLE_SCHEMA, '</td>',
+'<td>', t.TABLE_NAME, '</td>',
+'<td><font color="red">', IFNULL(ccsa.CHARACTER_SET_NAME, 'N/A'), '</font></td>',
+'<td>', IFNULL(t.TABLE_COLLATION, 'N/A'), '</td>',
+'<td>', IFNULL(col_cnt.cc, 0), '</td>',
+'</tr>'
+) AS ''
+FROM INFORMATION_SCHEMA.TABLES t
+LEFT JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY ccsa
+  ON t.TABLE_COLLATION = ccsa.COLLATION_NAME
+LEFT JOIN (
+  SELECT TABLE_SCHEMA, TABLE_NAME, COUNT(*) AS cc
+  FROM INFORMATION_SCHEMA.COLUMNS
+  GROUP BY TABLE_SCHEMA, TABLE_NAME
+) col_cnt ON t.TABLE_SCHEMA = col_cnt.TABLE_SCHEMA AND t.TABLE_NAME = col_cnt.TABLE_NAME
+WHERE t.TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+  AND t.TABLE_TYPE = 'BASE TABLE'
+  AND t.TABLE_COLLATION IS NOT NULL
+  AND t.TABLE_COLLATION NOT LIKE 'utf8mb4%'
+LIMIT 30;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: binlog_summary - Binary log usage summary
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="binlog_summary" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>max_binlog_size</td><td>',
+  ROUND(@@max_binlog_size / 1024 / 1024, 2), ' MB',
+'</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>Binlog_cache_use</td><td>',
+  VARIABLE_VALUE,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Binlog_cache_use';
+
+SELECT CONCAT(
+'<tr><td>Binlog_cache_disk_use</td><td>',
+  CASE
+    WHEN CAST(d.v AS UNSIGNED) > CAST(c.v AS UNSIGNED) * 0.1 AND CAST(c.v AS UNSIGNED) > 0
+      THEN CONCAT('<font color="red">', d.v, '</font>')
+    ELSE d.v
+  END,
+'</td></tr>'
+) AS ''
+FROM
+  (SELECT VARIABLE_VALUE AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Binlog_cache_disk_use') d,
+  (SELECT VARIABLE_VALUE AS v FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Binlog_cache_use') c;
+
+SELECT CONCAT(
+'<tr><td>Binlog_stmt_cache_use</td><td>',
+  VARIABLE_VALUE,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Binlog_stmt_cache_use';
+
+SELECT CONCAT(
+'<tr><td>Binlog_stmt_cache_disk_use</td><td>',
+  VARIABLE_VALUE,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Binlog_stmt_cache_disk_use';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: lock_waits - Current InnoDB lock waits
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="lock_waits" border="1" width="90%" align="center">',
+'<tr><td><b>Wait_Thread</b></td><td><b>Wait_Query</b></td><td><b>Block_Thread</b></td><td><b>Block_Query</b></td><td><b>Wait_Sec</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', IFNULL(wt.trx_mysql_thread_id, 0), '</td>',
+'<td>', IFNULL(LEFT(wt.trx_query, 80), 'N/A'), '</td>',
+'<td>', IFNULL(bt.trx_mysql_thread_id, 0), '</td>',
+'<td>', IFNULL(LEFT(bt.trx_query, 80), 'N/A'), '</td>',
+'<td>',
+  CASE
+    WHEN TIMESTAMPDIFF(SECOND, wt.trx_wait_started, NOW()) > 10
+      THEN CONCAT('<font color="red">', TIMESTAMPDIFF(SECOND, wt.trx_wait_started, NOW()), '</font>')
+    ELSE CAST(IFNULL(TIMESTAMPDIFF(SECOND, wt.trx_wait_started, NOW()), 0) AS CHAR)
+  END,
+'</td>',
+'</tr>'
+) AS ''
+FROM performance_schema.data_lock_waits dlw
+JOIN information_schema.innodb_trx wt ON dlw.REQUESTING_ENGINE_TRANSACTION_ID = wt.trx_id
+JOIN information_schema.innodb_trx bt ON dlw.BLOCKING_ENGINE_TRANSACTION_ID = bt.trx_id
+LIMIT 20;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: object_stats - Database object count per schema
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="object_stats" border="1" width="90%" align="center">',
+'<tr><td><b>Schema</b></td><td><b>Tbl_Cnt</b></td><td><b>View_Cnt</b></td><td><b>Routine_Cnt</b></td><td><b>Trigger_Cnt</b></td><td><b>Event_Cnt</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr>',
+'<td>', s.SCHEMA_NAME, '</td>',
+'<td>', IFNULL(tc.tbl_cnt, 0), '</td>',
+'<td>', IFNULL(vc.view_cnt, 0), '</td>',
+'<td>', IFNULL(rc.routine_cnt, 0), '</td>',
+'<td>', IFNULL(trc.trigger_cnt, 0), '</td>',
+'<td>', IFNULL(ec.event_cnt, 0), '</td>',
+'</tr>'
+) AS ''
+FROM INFORMATION_SCHEMA.SCHEMATA s
+LEFT JOIN (
+  SELECT TABLE_SCHEMA, COUNT(*) AS tbl_cnt
+  FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_TYPE = 'BASE TABLE'
+  GROUP BY TABLE_SCHEMA
+) tc ON s.SCHEMA_NAME = tc.TABLE_SCHEMA
+LEFT JOIN (
+  SELECT TABLE_SCHEMA, COUNT(*) AS view_cnt
+  FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_TYPE = 'VIEW'
+  GROUP BY TABLE_SCHEMA
+) vc ON s.SCHEMA_NAME = vc.TABLE_SCHEMA
+LEFT JOIN (
+  SELECT ROUTINE_SCHEMA, COUNT(*) AS routine_cnt
+  FROM INFORMATION_SCHEMA.ROUTINES
+  GROUP BY ROUTINE_SCHEMA
+) rc ON s.SCHEMA_NAME = rc.ROUTINE_SCHEMA
+LEFT JOIN (
+  SELECT TRIGGER_SCHEMA, COUNT(*) AS trigger_cnt
+  FROM INFORMATION_SCHEMA.TRIGGERS
+  GROUP BY TRIGGER_SCHEMA
+) trc ON s.SCHEMA_NAME = trc.TRIGGER_SCHEMA
+LEFT JOIN (
+  SELECT EVENT_SCHEMA, COUNT(*) AS event_cnt
+  FROM INFORMATION_SCHEMA.EVENTS
+  GROUP BY EVENT_SCHEMA
+) ec ON s.SCHEMA_NAME = ec.EVENT_SCHEMA
+WHERE s.SCHEMA_NAME NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+ORDER BY IFNULL(tc.tbl_cnt, 0) DESC;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: gtid_status - GTID replication configuration
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="gtid_status" border="1" width="90%" align="center">',
+'<tr><td><b>Parameter</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>gtid_mode</td><td>',
+  CASE
+    WHEN @@gtid_mode != 'ON' THEN CONCAT('<font color="red">', @@gtid_mode, '</font>')
+    ELSE @@gtid_mode
+  END,
+'</td><td>',
+  CASE
+    WHEN @@gtid_mode = 'ON' THEN 'OK'
+    WHEN @@gtid_mode = 'OFF' THEN 'Disabled'
+    ELSE 'Transitioning'
+  END,
+'</td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>enforce_gtid_consistency</td><td>',
+  CASE
+    WHEN @@enforce_gtid_consistency != 'ON' THEN CONCAT('<font color="red">', @@enforce_gtid_consistency, '</font>')
+    ELSE @@enforce_gtid_consistency
+  END,
+'</td><td>',
+  CASE
+    WHEN @@enforce_gtid_consistency = 'ON' THEN 'OK'
+    ELSE 'Not enforced'
+  END,
+'</td></tr>'
+) AS '';
+
+-- GTID executed set count
+SELECT CONCAT(
+'<tr><td>gtid_executed (sets)</td><td>',
+  IFNULL(
+    (SELECT COUNT(*) FROM mysql.gtid_executed GROUP BY NULL),
+    0
+  ),
+'</td><td>-</td></tr>'
+) AS '';
+
+-- server_uuid
+SELECT CONCAT(
+'<tr><td>server_uuid</td><td>', @@server_uuid, '</td><td>-</td></tr>'
+) AS '';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: semisync_status - Semi-synchronous replication
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="semisync_status" border="1" width="90%" align="center">',
+'<tr><td><b>Parameter</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+-- Check if semisync source plugin is loaded
+SELECT CONCAT(
+'<tr><td>rpl_semi_sync_source (plugin)</td><td>',
+  IFNULL(
+    (SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS
+     WHERE PLUGIN_NAME IN ('rpl_semi_sync_master', 'rpl_semi_sync_source')
+     LIMIT 1),
+    'Not Installed'
+  ),
+'</td><td>',
+  CASE
+    WHEN (SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS
+          WHERE PLUGIN_NAME IN ('rpl_semi_sync_master', 'rpl_semi_sync_source')
+          LIMIT 1) = 'ACTIVE' THEN 'OK'
+    ELSE 'N/A'
+  END,
+'</td></tr>'
+) AS '';
+
+-- Check if semisync replica plugin is loaded
+SELECT CONCAT(
+'<tr><td>rpl_semi_sync_replica (plugin)</td><td>',
+  IFNULL(
+    (SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS
+     WHERE PLUGIN_NAME IN ('rpl_semi_sync_slave', 'rpl_semi_sync_replica')
+     LIMIT 1),
+    'Not Installed'
+  ),
+'</td><td>',
+  CASE
+    WHEN (SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS
+          WHERE PLUGIN_NAME IN ('rpl_semi_sync_slave', 'rpl_semi_sync_replica')
+          LIMIT 1) = 'ACTIVE' THEN 'OK'
+    ELSE 'N/A'
+  END,
+'</td></tr>'
+) AS '';
+
+-- Semi-sync status counters (will be empty if not installed)
+SELECT CONCAT(
+'<tr><td>', gs.VARIABLE_NAME, '</td><td>', gs.VARIABLE_VALUE, '</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status gs
+WHERE gs.VARIABLE_NAME IN (
+  'Rpl_semi_sync_master_status', 'Rpl_semi_sync_source_status',
+  'Rpl_semi_sync_master_yes_tx', 'Rpl_semi_sync_source_yes_tx',
+  'Rpl_semi_sync_master_no_tx', 'Rpl_semi_sync_source_no_tx',
+  'Rpl_semi_sync_slave_status', 'Rpl_semi_sync_replica_status'
+)
+ORDER BY gs.VARIABLE_NAME;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: repl_filters - Replication filter rules
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="repl_filters" border="1" width="90%" align="center">',
+'<tr><td><b>Filter_Type</b></td><td><b>Value</b></td></tr>'
+) AS '';
+
+SELECT CONCAT(
+'<tr><td>', gv.VARIABLE_NAME, '</td><td>',
+  CASE
+    WHEN gv.VARIABLE_VALUE = '' THEN '(none)'
+    ELSE gv.VARIABLE_VALUE
+  END,
+'</td></tr>'
+) AS ''
+FROM performance_schema.global_variables gv
+WHERE gv.VARIABLE_NAME IN (
+  'replicate_do_db', 'replicate_ignore_db',
+  'replicate_do_table', 'replicate_ignore_table',
+  'replicate_wild_do_table', 'replicate_wild_ignore_table',
+  'binlog_do_db', 'binlog_ignore_db'
+)
+ORDER BY gv.VARIABLE_NAME;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: binlog_files - Binary log info
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="binlog_files" border="1" width="90%" align="center">',
+'<tr><td><b>Metric</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'
+) AS '';
+
+-- log_bin_basename (shows binlog file prefix/path)
+SELECT CONCAT(
+'<tr><td>log_bin_basename</td><td>',
+  IFNULL(@@log_bin_basename, 'N/A'),
+'</td><td>',
+  CASE WHEN @@log_bin = 1 THEN 'OK' ELSE 'Binlog OFF' END,
+'</td></tr>'
+) AS '';
+
+-- max_binlog_size
+SELECT CONCAT(
+'<tr><td>max_binlog_size</td><td>',
+  ROUND(@@max_binlog_size / 1024 / 1024, 2), ' MB',
+'</td><td>-</td></tr>'
+) AS '';
+
+-- binlog_expire_logs_seconds (MySQL 8.0+)
+SELECT CONCAT(
+'<tr><td>binlog_expire_logs_seconds</td><td>',
+  @@binlog_expire_logs_seconds,
+'</td><td>',
+  CASE
+    WHEN @@binlog_expire_logs_seconds = 0 THEN '<font color="red">No auto-purge</font>'
+    WHEN @@binlog_expire_logs_seconds < 86400 THEN '<font color="red">Less than 1 day</font>'
+    ELSE 'OK'
+  END,
+'</td></tr>'
+) AS '';
+
+-- Current binlog file count from binary log index
+SELECT CONCAT(
+'<tr><td>Com_show_binlogs</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Com_show_binlogs';
+
+-- Binlog total space
+SELECT CONCAT(
+'<tr><td>Binlog_cache_use</td><td>',
+  VARIABLE_VALUE,
+'</td><td>-</td></tr>'
+) AS ''
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME = 'Binlog_cache_use';
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: slave_hosts - Connected replicas (master view)
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="slave_hosts" border="1" width="90%" align="center">',
+'<tr><td><b>Server_ID</b></td><td><b>Host</b></td><td><b>Port</b></td><td><b>Source_ID</b></td><td><b>Replica_UUID</b></td></tr>'
+) AS '';
+
+-- Query performance_schema.replication_connection_status for connected replicas info
+-- For the master side, we check the threads table
+SELECT CONCAT(
+'<tr>',
+'<td>', IFNULL(thr.PROCESSLIST_ID, 0), '</td>',
+'<td>', IFNULL(SUBSTRING_INDEX(thr.PROCESSLIST_HOST, ':', 1), 'N/A'), '</td>',
+'<td>', IFNULL(SUBSTRING_INDEX(thr.PROCESSLIST_HOST, ':', -1), ''), '</td>',
+'<td>', @@server_id, '</td>',
+'<td>-</td>',
+'</tr>'
+) AS ''
+FROM performance_schema.threads thr
+WHERE thr.NAME LIKE '%binlog_dump%'
+  OR thr.NAME LIKE '%Binlog Dump%'
+LIMIT 20;
+
+SELECT '</table>' AS '';
+
+-- ============================================================
+-- Table: group_replication - InnoDB Cluster / Group Replication
+-- ============================================================
+
+SELECT CONCAT(
+'<table id="group_replication" border="1" width="90%" align="center">',
+'<tr><td><b>Member_ID</b></td><td><b>Host</b></td><td><b>Port</b></td><td><b>State</b></td><td><b>Role</b></td></tr>'
+) AS '';
+
+-- Check if group_replication plugin is active
+SELECT CONCAT(
+'<tr>',
+'<td>', IFNULL(m.MEMBER_ID, 'N/A'), '</td>',
+'<td>', IFNULL(m.MEMBER_HOST, 'N/A'), '</td>',
+'<td>', IFNULL(m.MEMBER_PORT, 0), '</td>',
+'<td>',
+  CASE
+    WHEN m.MEMBER_STATE != 'ONLINE' THEN CONCAT('<font color="red">', m.MEMBER_STATE, '</font>')
+    ELSE m.MEMBER_STATE
+  END,
+'</td>',
+'<td>', IFNULL(m.MEMBER_ROLE, 'N/A'), '</td>',
+'</tr>'
+) AS ''
+FROM performance_schema.replication_group_members m
+ORDER BY m.MEMBER_ROLE DESC, m.MEMBER_HOST;
 
 SELECT '</table>' AS '';
 
