@@ -142,19 +142,6 @@ This application requires JavaScript. Please enable JavaScript and refresh.
     </div>
 </section>
 
-<!-- Safety Promise Banner -->
-<section style="padding:0 24px;">
-    <div style="max-width:960px;margin:0 auto;background:linear-gradient(135deg,#0f2027 0%,#1a365d 50%,#203a43 100%);border-radius:16px;padding:40px 48px;display:flex;align-items:center;gap:36px;flex-wrap:wrap;position:relative;overflow:hidden;">
-        <div style="position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(16,185,129,0.08) 0%,transparent 70%);pointer-events:none;"></div>
-        <div style="flex-shrink:0;width:64px;height:64px;border-radius:16px;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;font-size:28px;">&#128737;</div>
-        <div style="flex:1;min-width:240px;">
-            <h3 style="font-size:20px;font-weight:700;color:#fff;margin-bottom:8px;" data-zh="生产安全承诺" data-en="Production Safety Guarantee">生产安全承诺</h3>
-            <p style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.8;margin:0;" data-zh="巡检脚本仅使用 SELECT 语句采集数据库视图和动态性能表，不执行任何 DML/DDL 操作，不创建临时表、存储过程或任何数据库对象，不申请排他锁。已在数万套生产环境验证，可放心在核心业务库运行。" data-en="Inspection scripts use only SELECT statements on database views and dynamic performance tables. No DML/DDL operations, no temporary tables or stored procedures created, no exclusive locks acquired. Verified on tens of thousands of production environments.">巡检脚本仅使用 SELECT 语句采集数据库视图和动态性能表，不执行任何 DML/DDL 操作，不创建临时表、存储过程或任何数据库对象，不申请排他锁。已在数万套生产环境验证，可放心在核心业务库运行。</p>
-        </div>
-        <a href="https://github.com/pc-study/dbcheck" target="_blank" rel="noopener" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.3);text-decoration:none;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.2)'" data-zh="&#128270; 审计源码" data-en="&#128270; Audit Source">&#128270; 审计源码</a>
-    </div>
-</section>
-
 <!-- Steps -->
 <section class="section section-dark" id="steps">
     <div class="container">
@@ -208,10 +195,10 @@ This application requires JavaScript. Please enable JavaScript and refresh.
                         <p class="script-ver" data-zh="根据版本选择对应脚本下载" data-en="Choose the script matching your Oracle version">根据版本选择对应脚本下载</p>
                         <div class="script-tags"><span class="script-tag">10g</span><span class="script-tag">11g</span><span class="script-tag">12c</span><span class="script-tag">19c</span><span class="script-tag">21c</span><span class="script-tag">26ai</span></div>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:auto;">
-                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck10g.sql" class="btn-dl" download style="justify-content:center;width:100%;">&#8681; 10g</a>
-                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck11g.sql" class="btn-dl" download style="justify-content:center;width:100%;">&#8681; 11g</a>
-                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck12c.sql" class="btn-dl" download style="justify-content:center;width:100%;" data-zh="&#8681; 12c+" data-en="&#8681; 12c+">&#8681; 12c+</a>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:auto;justify-content:center;">
+                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck10g.sql" class="btn-dl" download>&#8681; 10g</a>
+                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck11g.sql" class="btn-dl" download>&#8681; 11g</a>
+                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck12c.sql" class="btn-dl" download data-zh="&#8681; 12c+" data-en="&#8681; 12c+">&#8681; 12c+</a>
                     </div>
                 </div>
                 <div class="script-card accent-shell">
