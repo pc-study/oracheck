@@ -228,54 +228,72 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 
         <!-- MySQL Panel -->
         <div class="scripts-db-panel" id="scripts-mysql">
-            <div class="scripts-grid single-card">
-                <div class="script-card accent-mysql horizontal">
+            <div class="scripts-grid">
+                <div class="script-card accent-mysql">
                     <div class="script-icon-wrap mysql"><img src="images/mysql.svg" alt="MySQL" width="32" height="32"></div>
-                    <div class="script-info">
+                    <div class="script-card-body">
                         <h3>dbcheck_mysql.sql</h3>
                         <p class="script-ver" data-zh="MySQL 5.7 及以上" data-en="MySQL 5.7+">MySQL 5.7 及以上</p>
-                        <p class="script-desc" data-zh="采集数据库配置、性能指标、表空间、慢查询、主从复制等巡检信息" data-en="Collects database config, performance metrics, tablespaces, slow queries, replication status and more">采集数据库配置、性能指标、表空间、慢查询、主从复制等巡检信息</p>
                         <div class="script-tags"><span class="script-tag">5.7</span><span class="script-tag">8.0</span><span class="script-tag">8.4</span><span class="script-tag">9.0</span></div>
                     </div>
-                    <div class="script-actions">
-                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/mysql/dbcheck_mysql.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/mysql/dbcheck_mysql.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                </div>
+                <div class="script-card accent-shell">
+                    <div class="script-icon-wrap shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 15h4" stroke-linecap="round"/></svg></div>
+                    <div class="script-card-body">
+                        <h3>oscheck.sh</h3>
+                        <p class="script-ver" data-zh="全量巡检（季检，含 DB + OS）" data-en="Full Inspection (Quarterly, DB + OS)">全量巡检（季检，含 DB + OS）</p>
+                        <div class="script-tags"><span class="script-tag">Linux</span><span class="script-tag" data-zh="自动打包" data-en="Auto-Pack">自动打包</span></div>
                     </div>
+                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/mysql/oscheck.sh" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
                 </div>
             </div>
         </div>
 
         <!-- PostgreSQL Panel -->
         <div class="scripts-db-panel" id="scripts-postgres">
-            <div class="scripts-grid single-card">
-                <div class="script-card accent-pg horizontal">
+            <div class="scripts-grid">
+                <div class="script-card accent-pg">
                     <div class="script-icon-wrap pg"><img src="images/postgresql.svg" alt="PostgreSQL" width="32" height="32"></div>
-                    <div class="script-info">
+                    <div class="script-card-body">
                         <h3>dbcheck_pg.sql</h3>
                         <p class="script-ver" data-zh="PostgreSQL 12 及以上" data-en="PostgreSQL 12+">PostgreSQL 12 及以上</p>
-                        <p class="script-desc" data-zh="采集数据库配置参数、连接数、表膨胀、索引使用率、锁等待等巡检信息" data-en="Collects database config, connections, table bloat, index usage, lock waits and more">采集数据库配置参数、连接数、表膨胀、索引使用率、锁等待等巡检信息</p>
                         <div class="script-tags"><span class="script-tag">12</span><span class="script-tag">14</span><span class="script-tag">15</span><span class="script-tag">16</span><span class="script-tag">17</span></div>
                     </div>
-                    <div class="script-actions">
-                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/postgres/dbcheck_pg.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/postgres/dbcheck_pg.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                </div>
+                <div class="script-card accent-shell">
+                    <div class="script-icon-wrap shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 15h4" stroke-linecap="round"/></svg></div>
+                    <div class="script-card-body">
+                        <h3>oscheck.sh</h3>
+                        <p class="script-ver" data-zh="全量巡检（季检，含 DB + OS）" data-en="Full Inspection (Quarterly, DB + OS)">全量巡检（季检，含 DB + OS）</p>
+                        <div class="script-tags"><span class="script-tag">Linux</span><span class="script-tag" data-zh="自动打包" data-en="Auto-Pack">自动打包</span></div>
                     </div>
+                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/postgres/oscheck.sh" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
                 </div>
             </div>
         </div>
 
         <!-- SQL Server Panel -->
         <div class="scripts-db-panel" id="scripts-sqlserver">
-            <div class="scripts-grid single-card">
-                <div class="script-card accent-mssql horizontal">
+            <div class="scripts-grid">
+                <div class="script-card accent-mssql">
                     <div class="script-icon-wrap mssql"><img src="images/sqlserver.svg" alt="SQL Server" width="32" height="32"></div>
-                    <div class="script-info">
+                    <div class="script-card-body">
                         <h3>dbcheck_mssql.sql</h3>
                         <p class="script-ver" data-zh="SQL Server 2016 及以上" data-en="SQL Server 2016+">SQL Server 2016 及以上</p>
-                        <p class="script-desc" data-zh="采集数据库配置、数据文件、作业状态、备份信息、性能计数器等巡检信息" data-en="Collects database config, data files, job status, backup info, performance counters and more">采集数据库配置、数据文件、作业状态、备份信息、性能计数器等巡检信息</p>
                         <div class="script-tags"><span class="script-tag">2016</span><span class="script-tag">2019</span><span class="script-tag">2022</span></div>
                     </div>
-                    <div class="script-actions">
-                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/sqlserver/dbcheck_mssql.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/sqlserver/dbcheck_mssql.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                </div>
+                <div class="script-card accent-shell">
+                    <div class="script-icon-wrap shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 15h4" stroke-linecap="round"/></svg></div>
+                    <div class="script-card-body">
+                        <h3>oscheck.sh</h3>
+                        <p class="script-ver" data-zh="全量巡检（季检，含 DB + OS）" data-en="Full Inspection (Quarterly, DB + OS)">全量巡检（季检，含 DB + OS）</p>
+                        <div class="script-tags"><span class="script-tag">Linux</span><span class="script-tag" data-zh="自动打包" data-en="Auto-Pack">自动打包</span></div>
                     </div>
+                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/sqlserver/oscheck.sh" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
                 </div>
             </div>
         </div>
@@ -288,9 +306,12 @@ This application requires JavaScript. Please enable JavaScript and refresh.
             <div class="scripts-howto-tabs">
                 <button class="scripts-howto-tab active" onclick="switchScriptTab(this, 'code-oracle-weekly')" data-zh="Oracle 周/月检" data-en="Oracle Weekly/Monthly">Oracle 周/月检</button>
                 <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-oracle-quarterly')" data-zh="Oracle 季检" data-en="Oracle Quarterly">Oracle 季检</button>
-                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-mysql')" data-zh="MySQL" data-en="MySQL">MySQL</button>
-                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-postgres')" data-zh="PostgreSQL" data-en="PostgreSQL">PostgreSQL</button>
-                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-sqlserver')" data-zh="SQL Server" data-en="SQL Server">SQL Server</button>
+                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-mysql')" data-zh="MySQL 周/月检" data-en="MySQL Weekly/Monthly">MySQL 周/月检</button>
+                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-mysql-quarterly')" data-zh="MySQL 季检" data-en="MySQL Quarterly">MySQL 季检</button>
+                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-postgres')" data-zh="PG 周/月检" data-en="PG Weekly/Monthly">PG 周/月检</button>
+                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-postgres-quarterly')" data-zh="PG 季检" data-en="PG Quarterly">PG 季检</button>
+                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-sqlserver')" data-zh="SS 周/月检" data-en="SS Weekly/Monthly">SS 周/月检</button>
+                <button class="scripts-howto-tab" onclick="switchScriptTab(this, 'code-sqlserver-quarterly')" data-zh="SS 季检" data-en="SS Quarterly">SS 季检</button>
             </div>
             <pre class="scripts-howto-code" id="code-oracle-weekly"><span class="cmd-comment"># 1. 将脚本上传到数据库服务器（选择与版本对应的 SQL 文件）</span>
 <span class="cmd-comment"># 2. 以 oracle 用户执行（以 19c 为例）：</span>
@@ -326,6 +347,25 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 
 <span class="cmd-comment"># 3. 执行完毕后在当前目录生成 HTML 文件</span>
 <span class="cmd-comment"># 4. 将 HTML 文件上传到本平台，选择「MySQL」数据库类型即可</span></pre>
+            <pre class="scripts-howto-code" id="code-mysql-quarterly" style="display:none"><span class="cmd-comment"># oscheck.sh 会自动调用 dbcheck_mysql.sql 并采集 OS 信息，打包 tar.gz</span>
+<span class="cmd-comment"># 将 dbcheck_mysql.sql 和 oscheck.sh 放在同一目录</span>
+
+<span class="cmd-comment"># 1. 上传 2 个脚本到 MySQL 服务器同一目录</span>
+<span class="cmd-comment">#    dbcheck_mysql.sql / oscheck.sh</span>
+
+<span class="cmd-comment"># 2. 执行 oscheck.sh（默认使用 root 用户）</span>
+<span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh</span>
+
+<span class="cmd-comment"># 可选参数：</span>
+<span class="cmd-comment">#   -u 用户名    MySQL 用户名（默认 root）</span>
+<span class="cmd-comment">#   -p 密码      MySQL 密码</span>
+<span class="cmd-comment">#   -S socket    指定 socket 路径</span>
+<span class="cmd-comment">#   -P 端口      指定端口（默认 3306）</span>
+<span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh -u root -p 'password' -P 3306</span>
+
+<span class="cmd-comment"># 3. 执行完毕后自动在当前目录生成 tar.gz 文件</span>
+<span class="cmd-comment">#    文件名格式：dbcheck_主机名_日期.tar.gz</span>
+<span class="cmd-comment"># 4. 将 tar.gz 文件上传到本平台，选择「MySQL」+「季检」即可</span></pre>
             <pre class="scripts-howto-code" id="code-postgres" style="display:none"><span class="cmd-comment"># 1. 将 dbcheck_pg.sql 上传到 PostgreSQL 服务器</span>
 <span class="cmd-comment"># 2. 以 postgres 用户执行：</span>
 
@@ -333,6 +373,25 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 
 <span class="cmd-comment"># 3. 脚本自动输出到 /tmp/dbcheck_pg_result.html</span>
 <span class="cmd-comment"># 4. 将 HTML 文件上传到本平台，选择「PostgreSQL」数据库类型即可</span></pre>
+            <pre class="scripts-howto-code" id="code-postgres-quarterly" style="display:none"><span class="cmd-comment"># oscheck.sh 会自动调用 dbcheck_pg.sql 并采集 OS 信息，打包 tar.gz</span>
+<span class="cmd-comment"># 将 dbcheck_pg.sql 和 oscheck.sh 放在同一目录</span>
+
+<span class="cmd-comment"># 1. 上传 2 个脚本到 PostgreSQL 服务器同一目录</span>
+<span class="cmd-comment">#    dbcheck_pg.sql / oscheck.sh</span>
+
+<span class="cmd-comment"># 2. 以 postgres 用户或 root 用户执行</span>
+<span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh</span>
+
+<span class="cmd-comment"># 可选参数：</span>
+<span class="cmd-comment">#   -U 用户名    PostgreSQL 用户（默认 postgres）</span>
+<span class="cmd-comment">#   -d 数据库    连接的数据库名（默认 postgres）</span>
+<span class="cmd-comment">#   -p 端口      指定端口（默认 5432）</span>
+<span class="cmd-comment">#   -H 主机      指定远程主机（默认本地 socket）</span>
+<span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh -U postgres -d mydb -p 5432</span>
+
+<span class="cmd-comment"># 3. 执行完毕后自动在当前目录生成 tar.gz 文件</span>
+<span class="cmd-comment">#    文件名格式：dbcheck_主机名_日期.tar.gz</span>
+<span class="cmd-comment"># 4. 将 tar.gz 文件上传到本平台，选择「PostgreSQL」+「季检」即可</span></pre>
             <pre class="scripts-howto-code" id="code-sqlserver" style="display:none"><span class="cmd-comment"># 1. 将 dbcheck_mssql.sql 上传到 SQL Server 服务器</span>
 <span class="cmd-comment"># 2. 使用 sqlcmd 执行：</span>
 
@@ -340,6 +399,24 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 
 <span class="cmd-comment"># 3. 执行完毕后在当前目录生成 HTML 文件</span>
 <span class="cmd-comment"># 4. 将 HTML 文件上传到本平台，选择「SQL Server」数据库类型即可</span></pre>
+            <pre class="scripts-howto-code" id="code-sqlserver-quarterly" style="display:none"><span class="cmd-comment"># oscheck.sh 会自动调用 dbcheck_mssql.sql 并采集 OS 信息，打包 tar.gz</span>
+<span class="cmd-comment"># 将 dbcheck_mssql.sql 和 oscheck.sh 放在同一目录（Linux 环境）</span>
+
+<span class="cmd-comment"># 1. 上传 2 个脚本到 SQL Server 所在 Linux 服务器同一目录</span>
+<span class="cmd-comment">#    dbcheck_mssql.sql / oscheck.sh</span>
+
+<span class="cmd-comment"># 2. 执行 oscheck.sh（需要提供 SA 密码）</span>
+<span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh -P 'yourpassword'</span>
+
+<span class="cmd-comment"># 可选参数：</span>
+<span class="cmd-comment">#   -U 用户名    SQL Server 用户（默认 SA）</span>
+<span class="cmd-comment">#   -P 密码      SQL Server 密码（必填）</span>
+<span class="cmd-comment">#   -S 服务器    服务器地址和端口（默认 localhost）</span>
+<span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh -U sa -P 'pass' -S localhost,1433</span>
+
+<span class="cmd-comment"># 3. 执行完毕后自动在当前目录生成 tar.gz 文件</span>
+<span class="cmd-comment">#    文件名格式：dbcheck_主机名_日期.tar.gz</span>
+<span class="cmd-comment"># 4. 将 tar.gz 文件上传到本平台，选择「SQL Server」+「季检」即可</span></pre>
         </div>
 
         <div class="scripts-note">
@@ -370,8 +447,8 @@ This application requires JavaScript. Please enable JavaScript and refresh.
                     <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="文件上传区域 - 拖拽或点击选择文件" onclick="document.getElementById('fileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileInput').click();}">
                         <span class="drop-zone-icon" aria-hidden="true">&#128194;</span>
                         <p class="drop-zone-text" data-zh="拖拽文件到此处，或点击选择文件" data-en="Click to select or drag &amp; drop file here">拖拽文件到此处，或点击选择文件</p>
-                        <p class="drop-zone-hint" data-zh="支持 .html、.tar.gz 格式的巡检文件" data-en="Supports .html and .tar.gz (max 50MB)">支持 .html、.tar.gz 格式的巡检文件</p>
-                        <input type="file" id="fileInput" accept=".html,.gz,.tar.gz" multiple aria-label="选择巡检文件" style="display:none" onchange="updateFileNames(this.files)">
+                        <p class="drop-zone-hint" data-zh="支持 .html、.tar.gz、.tgz 格式的巡检文件" data-en="Supports .html, .tar.gz and .tgz (max 50MB)">支持 .html、.tar.gz、.tgz 格式的巡检文件</p>
+                        <input type="file" id="fileInput" accept=".html,.gz,.tar.gz,.tgz" multiple aria-label="选择巡检文件" style="display:none" onchange="updateFileNames(this.files)">
                     </div>
                     <p style="font-size:12px;color:#667085;margin:-18px 0 18px 2px;line-height:1.6;" data-zh="支持同时选择多个巡检文件批量生成报告（最多 20 个）" data-en="Select multiple inspection files for batch report generation (max 20)">支持同时选择多个巡检文件批量生成报告（最多 20 个）</p>
 
@@ -605,8 +682,8 @@ function showError(msg){var el=document.getElementById('errorMsg');document.getE
 function hideError(){document.getElementById('errorMsg').style.display='none';}
 document.getElementById('inviteCode').addEventListener('input',function(){this.value=this.value.toUpperCase();this.style.borderColor='#d0d5dd';this.style.boxShadow='';document.getElementById('inviteCodeHint').style.display='none';});function showLoading(show){document.getElementById('loadingOverlay').style.display=show?'flex':'none';document.getElementById('uploadForm').style.display=show?'none':'';if(show){var texts=_currentLang==='en'?['Uploading file...','Parsing inspection data...','Running diagnostics...','Generating Word report...']:['正在上传文件...','正在解析巡检数据...','正在诊断分析...','正在生成 Word 报告...'];var idx=0;var el=document.getElementById('loadingText');el.textContent=texts[0];window._loadingInterval=setInterval(function(){idx=Math.min(idx+1,texts.length-1);el.textContent=texts[idx];},4000);}else if(window._loadingInterval){clearInterval(window._loadingInterval);}var pbc=document.getElementById('progressBarContainer');if(pbc){pbc.style.display='none';}var pb=document.getElementById('progressBar');if(pb){pb.style.width='0%';}var pp=document.getElementById('progressPercent');if(pp){pp.textContent='0%';}}
 var _isUploading=false;var _uploadController=null;async function handleUpload(){if(_isUploading)return;hideError();if(!fileInput.files.length){showError(_currentLang==='en'?'Please select an inspection file first':'请先选择巡检文件');return;}
-var isBatch=fileInput.files.length>1;if(!isBatch){var file=fileInput.files[0];var name=file.name.toLowerCase();if(!name.endsWith('.html')&&!name.endsWith('.tar.gz')&&!name.endsWith('.gz')){showError(_currentLang==='en'?'Only .html or .tar.gz files are supported':'仅支持 .html 或 .tar.gz 格式的文件');return;}
-if(file.size>50*1024*1024){showError(_currentLang==='en'?'File size cannot exceed 50MB':'文件大小不能超过 50MB');return;}}else{for(var fi=0;fi<fileInput.files.length;fi++){var fn=fileInput.files[fi].name.toLowerCase();if(!fn.endsWith('.html')&&!fn.endsWith('.tar.gz')&&!fn.endsWith('.gz')){showError((_currentLang==='en'?'Unsupported file: ':'不支持的文件格式: ')+fileInput.files[fi].name);return;}}if(fileInput.files.length>20){showError(_currentLang==='en'?'Maximum 20 files per batch':'单次最多上传 20 个文件');return;}}
+var isBatch=fileInput.files.length>1;if(!isBatch){var file=fileInput.files[0];var name=file.name.toLowerCase();if(!name.endsWith('.html')&&!name.endsWith('.tar.gz')&&!name.endsWith('.tgz')&&!name.endsWith('.gz')){showError(_currentLang==='en'?'Only .html, .tar.gz or .tgz files are supported':'仅支持 .html、.tar.gz、.tgz 格式的文件');return;}
+if(file.size>50*1024*1024){showError(_currentLang==='en'?'File size cannot exceed 50MB':'文件大小不能超过 50MB');return;}}else{for(var fi=0;fi<fileInput.files.length;fi++){var fn=fileInput.files[fi].name.toLowerCase();if(!fn.endsWith('.html')&&!fn.endsWith('.tar.gz')&&!fn.endsWith('.tgz')&&!fn.endsWith('.gz')){showError((_currentLang==='en'?'Unsupported file: ':'不支持的文件格式: ')+fileInput.files[fi].name);return;}}if(fileInput.files.length>20){showError(_currentLang==='en'?'Maximum 20 files per batch':'单次最多上传 20 个文件');return;}}
 var reportType=document.querySelector('input[name="reportType"]:checked').value;var inviteCode=(document.getElementById('inviteCode').value||'').trim();var codeInput=document.getElementById('inviteCode');var codeHint=document.getElementById('inviteCodeHint');codeInput.style.borderColor='#d0d5dd';codeInput.style.boxShadow='';codeHint.style.display='none';if(!inviteCode){codeInput.style.borderColor='#dc2626';codeInput.style.boxShadow='0 0 0 3px rgba(220,38,38,0.12)';codeHint.textContent=_currentLang==='en'?'Please enter an invite code. Add WeChat for a free trial code':'请先输入邀请码，添加微信可免费领取体验码';codeHint.style.display='block';codeInput.focus();codeInput.classList.add('shake');setTimeout(function(){codeInput.classList.remove('shake');},500);return;}
 if(!/^[A-Za-z0-9\-]{1,30}$/.test(inviteCode)){codeInput.style.borderColor='#dc2626';codeInput.style.boxShadow='0 0 0 3px rgba(220,38,38,0.12)';codeHint.textContent=_currentLang==='en'?'Invalid invite code format. Only letters, numbers and hyphens allowed':'邀请码格式无效，仅支持字母、数字和横线';codeHint.style.display='block';codeInput.focus();return;}
 var btn=document.querySelector('.btn-upload');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> '+(_currentLang==='en'?'Analyzing...':'正在分析...');_isUploading=true;if(API_BASE){try{var healthCtrl=new AbortController();var healthTimeout=setTimeout(function(){healthCtrl.abort();},5000);var healthResp=await fetch(API_BASE+'/health',{signal:healthCtrl.signal});clearTimeout(healthTimeout);}catch(e){btn.textContent=_currentLang==='en'?'Waking up service, please wait...':'服务唤醒中，请稍候...';try{await fetch(API_BASE+'/health',{signal:AbortSignal.timeout(60000)});}catch(e2){showError(_currentLang==='en'?'Service temporarily unavailable, please try again later':'服务暂时不可用，请稍后再试');_isUploading=false;btn.disabled=false;btn.innerHTML='&#9654; 开始分析';document.getElementById('cancelUpload').style.display='none';_uploadController=null;return;}}}
@@ -621,7 +698,7 @@ var ITEM_NAMES_DB={'oracle':{'tablespaces':'表空间使用率','controlfiles':'
 function shortVersion(ver){if(!ver||ver==='-')return'-';var m=ver.match(/(\d+[a-z]?)\s.*?(\d+[\d.]+)/i);if(m)return m[1]+' ('+m[2]+')';if(ver.length>30)return ver.substring(0,28)+'...';return ver;}
 function showResults(reports){var panel=document.getElementById('resultsPanel');var html='';if(!reports||!reports.length){html='<div style="text-align:center;padding:48px 24px;"><div style="font-size:48px;opacity:0.3;margin-bottom:16px;">📋</div><p style="color:var(--text-light);font-size:15px;">未获取到报告数据</p><p style="color:var(--text-light);font-size:13px;margin-top:8px;opacity:0.6;">请检查上传的文件是否为有效的巡检文件</p></div>';panel.innerHTML=html;panel.style.display='block';return;}
 reports.forEach(function(r,idx){var normalCount=r.normal_count||0;var abnormalCount=r.abnormal_count||0;var abnormals=r.abnormal_items||[];var descDetails=r.desc_details||{};var problems=r.db_desc||[];var downloadFile=r.report_file||'';html+='<div style="'+(idx>0?'margin-top:32px;padding-top:32px;border-top:1px solid var(--border);':'')+'">';html+='<div class="results-header">';html+='<h3>&#128202; 分析结果'+(reports.length>1?' #'+(idx+1):'')+'</h3>';if(downloadFile){html+='<a class="btn-download" href="'+API_BASE+'/api/download/'+encodeURIComponent(downloadFile)+'">&#11015; 下载 Word 报告</a>';}
-html+='</div>';var infoItems=[{label:'数据库名称',value:r.dbname||'-'},{label:'DBID',value:r.dbid||'-'},{label:'版本',value:shortVersion(r.db_version)},{label:'RAC',value:r.rac||'-'},{label:'巡检日期',value:r.check_date||'-'},{label:'报告类型',value:(r.report_type||'-')+'检'}];html+='<div class="db-info-grid">';infoItems.forEach(function(item){html+='<div class="db-info-item"><div class="label">'+item.label+'</div><div class="value">'+escapeHtml(String(item.value))+'</div></div>';});html+='</div>';html+='<div class="diag-summary">';html+='<div class="diag-badge normal"><div class="count">'+normalCount+'</div><div class="desc">正常项</div></div>';html+='<div class="diag-badge abnormal"><div class="count">'+abnormalCount+'</div><div class="desc">异常项</div></div>';html+='</div>';if(abnormals.length){html+='<div class="issue-list"><h4>&#9888; 异常项</h4>';abnormals.forEach(function(item){var detail=descDetails[item]||'';html+='<div class="issue-item abnormal-item"><span class="issue-dot"></span><div class="issue-content"><span class="issue-name">'+escapeHtml(friendlyName(item))+'</span>';if(detail){html+='<p class="issue-detail">'+escapeHtml(detail)+'</p>';}
+html+='</div>';var dbType=(document.querySelector('input[name="dbType"]:checked')||{}).value||'oracle';var infoItems=[{label:'数据库名称',value:r.dbname||'-'}];if(dbType==='oracle'){infoItems.push({label:'DBID',value:r.dbid||'-'});}infoItems.push({label:'版本',value:shortVersion(r.db_version)});if(dbType==='oracle'){infoItems.push({label:'RAC',value:r.rac||'-'});}infoItems.push({label:'巡检日期',value:r.check_date||'-'});infoItems.push({label:'报告类型',value:(r.report_type||'-')+'检'});html+='<div class="db-info-grid">';infoItems.forEach(function(item){html+='<div class="db-info-item"><div class="label">'+item.label+'</div><div class="value">'+escapeHtml(String(item.value))+'</div></div>';});html+='</div>';html+='<div class="diag-summary">';html+='<div class="diag-badge normal"><div class="count">'+normalCount+'</div><div class="desc">正常项</div></div>';html+='<div class="diag-badge abnormal"><div class="count">'+abnormalCount+'</div><div class="desc">异常项</div></div>';html+='</div>';if(abnormals.length){html+='<div class="issue-list"><h4>&#9888; 异常项</h4>';abnormals.forEach(function(item){var detail=descDetails[item]||'';html+='<div class="issue-item abnormal-item"><span class="issue-dot"></span><div class="issue-content"><span class="issue-name">'+escapeHtml(friendlyName(item))+'</span>';if(detail){html+='<p class="issue-detail">'+escapeHtml(detail)+'</p>';}
 html+='</div></div>';});html+='</div>';}
 if(problems.length){html+='<div class="problems-section"><h4>&#128221; 问题汇总</h4>';problems.forEach(function(p){html+='<div class="problem-item">'+escapeHtml(p)+'</div>';});html+='</div>';}
 html+='</div>';});html+='<div style="margin-top:32px;padding:24px;background:linear-gradient(135deg,rgba(59,130,246,0.06),rgba(16,185,129,0.06));border:1px solid rgba(59,130,246,0.12);border-radius:12px;text-align:center;">';html+='<p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">需要更多报告？</p>';html+='<p style="font-size:13px;color:var(--text-light);margin-bottom:16px;line-height:1.6;">批量生成、自定义模板、离线运行 — 桌面专业版一次买断，永久使用</p>';html+='<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">';html+='<a href="#pricing" style="padding:8px 20px;background:var(--accent);color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">查看定价方案</a>';html+='<a href="#desktop" style="padding:8px 20px;background:rgba(59,130,246,0.08);color:var(--accent);border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid rgba(59,130,246,0.2);">了解桌面版</a>';html+='</div></div>';html+='<div style="text-align:center;margin-top:24px;"><button onclick="resetUploadForm()" class="btn btn-outline" style="color:var(--text);border-color:var(--border);padding:10px 28px;font-size:14px;">继续生成报告</button></div>';panel.innerHTML=html;panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'start'});}
