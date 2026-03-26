@@ -91,6 +91,7 @@ This application requires JavaScript. Please enable JavaScript and refresh.
             <span class="hero-db-badge mssql"><img src="images/sqlserver.svg" alt="" width="20" height="20">SQL Server</span>
         </div>
         <p class="subtitle" data-zh="上传巡检文件，智能诊断数据库健康指标，一键生成专业 Word 巡检报告" data-en="Upload inspection files, auto-diagnose database health, generate professional Word reports in one click">上传巡检文件，智能诊断数据库健康指标，一键生成专业 Word 巡检报告</p>
+        <p style="margin-top:12px;margin-bottom:28px;display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:500;background:rgba(16,185,129,0.12);color:#6ee7b7;border:1px solid rgba(16,185,129,0.2);" data-zh="&#128274; 纯只读采集，零影响生产数据库运行" data-en="&#128274; Read-only collection, zero impact on production databases">&#128274; 纯只读采集，零影响生产数据库运行</p>
         <div class="hero-buttons">
             <a href="#demo" class="btn btn-primary" data-zh="免费在线体验 &#8594;" data-en="Try Free Online &#8594;">免费在线体验 &rarr;</a>
             <a href="#features" class="btn btn-outline" data-zh="了解更多" data-en="Learn More">了解更多</a>
@@ -129,15 +130,28 @@ This application requires JavaScript. Please enable JavaScript and refresh.
             </div>
             <div class="feature-card">
                 <div class="feature-icon red" aria-hidden="true">&#128274;</div>
-                <h3 data-zh="数据安全" data-en="Data Security">数据安全</h3>
-                <p data-zh="在线版文件处理完毕即删除，不保留任何数据；桌面版完全离线，数据不出内网" data-en="Online files auto-deleted after processing; Desktop version runs fully offline, data stays on-premise">在线版文件处理完毕即删除，不保留任何数据；桌面版完全离线，数据不出内网</p>
+                <h3 data-zh="零影响生产" data-en="Zero Production Impact">零影响生产</h3>
+                <p data-zh="巡检脚本仅执行只读 SELECT 查询，不创建任何对象、不修改任何数据、不申请排他锁，对生产库零影响。脚本全部开源可审计" data-en="Scripts execute read-only SELECT queries only — no object creation, no data modification, no exclusive locks. Zero impact on production. All scripts are open-source and auditable">巡检脚本仅执行只读 SELECT 查询，不创建任何对象、不修改任何数据、不申请排他锁，对生产库零影响。脚本全部开源可审计</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon teal" aria-hidden="true">&#128187;</div>
-                <h3 data-zh="开源巡检脚本" data-en="Open-Source Scripts">开源巡检脚本</h3>
-                <p data-zh="所有数据库巡检 SQL 脚本开源免费，只读采集数据库状态，可自行审计源码" data-en="All inspection SQL scripts are open-source, read-only data collection, fully auditable on GitHub">所有数据库巡检 SQL 脚本开源免费，只读采集数据库状态，可自行审计源码</p>
+                <h3 data-zh="开源可审计 + 数据安全" data-en="Open-Source &amp; Data Security">开源可审计 + 数据安全</h3>
+                <p data-zh="巡检脚本全部开源在 GitHub，可自行审计每一行代码。在线版文件处理完毕即删除；桌面版完全离线运行，数据不出内网" data-en="All scripts are open-source on GitHub, every line auditable. Online files auto-deleted after processing; Desktop version runs fully offline">巡检脚本全部开源在 GitHub，可自行审计每一行代码。在线版文件处理完毕即删除；桌面版完全离线运行，数据不出内网</p>
             </div>
         </div>
+    </div>
+</section>
+
+<!-- Safety Promise Banner -->
+<section style="padding:0 24px;">
+    <div style="max-width:960px;margin:0 auto;background:linear-gradient(135deg,#0f2027 0%,#1a365d 50%,#203a43 100%);border-radius:16px;padding:40px 48px;display:flex;align-items:center;gap:36px;flex-wrap:wrap;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(16,185,129,0.08) 0%,transparent 70%);pointer-events:none;"></div>
+        <div style="flex-shrink:0;width:64px;height:64px;border-radius:16px;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;font-size:28px;">&#128737;</div>
+        <div style="flex:1;min-width:240px;">
+            <h3 style="font-size:20px;font-weight:700;color:#fff;margin-bottom:8px;" data-zh="生产安全承诺" data-en="Production Safety Guarantee">生产安全承诺</h3>
+            <p style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.8;margin:0;" data-zh="巡检脚本仅使用 SELECT 语句采集数据库视图和动态性能表，不执行任何 DML/DDL 操作，不创建临时表、存储过程或任何数据库对象，不申请排他锁。已在数万套生产环境验证，可放心在核心业务库运行。" data-en="Inspection scripts use only SELECT statements on database views and dynamic performance tables. No DML/DDL operations, no temporary tables or stored procedures created, no exclusive locks acquired. Verified on tens of thousands of production environments.">巡检脚本仅使用 SELECT 语句采集数据库视图和动态性能表，不执行任何 DML/DDL 操作，不创建临时表、存储过程或任何数据库对象，不申请排他锁。已在数万套生产环境验证，可放心在核心业务库运行。</p>
+        </div>
+        <a href="https://github.com/pc-study/dbcheck" target="_blank" rel="noopener" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.3);text-decoration:none;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(16,185,129,0.3)'" onmouseout="this.style.background='rgba(16,185,129,0.2)'" data-zh="&#128270; 审计源码" data-en="&#128270; Audit Source">&#128270; 审计源码</a>
     </div>
 </section>
 
@@ -186,33 +200,19 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 
         <!-- Oracle Panel -->
         <div class="scripts-db-panel active" id="scripts-oracle">
-            <div class="scripts-grid">
+            <div class="scripts-grid two-col">
                 <div class="script-card accent-oracle">
                     <div class="script-icon-wrap oracle"><img src="images/oracle.svg" alt="Oracle" width="32" height="32"></div>
                     <div class="script-card-body">
-                        <h3>dbcheck10g.sql</h3>
-                        <p class="script-ver">Oracle 10g</p>
-                        <div class="script-tags"><span class="script-tag">10.1</span><span class="script-tag">10.2</span></div>
+                        <h3 data-zh="Oracle 巡检脚本" data-en="Oracle Inspection Scripts">Oracle 巡检脚本</h3>
+                        <p class="script-ver" data-zh="根据版本选择对应脚本下载" data-en="Choose the script matching your Oracle version">根据版本选择对应脚本下载</p>
+                        <div class="script-tags"><span class="script-tag">10g</span><span class="script-tag">11g</span><span class="script-tag">12c</span><span class="script-tag">19c</span><span class="script-tag">21c</span><span class="script-tag">26ai</span></div>
                     </div>
-                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck10g.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
-                </div>
-                <div class="script-card accent-oracle">
-                    <div class="script-icon-wrap oracle"><img src="images/oracle.svg" alt="Oracle" width="32" height="32"></div>
-                    <div class="script-card-body">
-                        <h3>dbcheck11g.sql</h3>
-                        <p class="script-ver">Oracle 11g</p>
-                        <div class="script-tags"><span class="script-tag">11.1</span><span class="script-tag">11.2</span></div>
+                    <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:auto;">
+                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck10g.sql" class="btn-dl" download style="justify-content:center;width:100%;">&#8681; 10g</a>
+                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck11g.sql" class="btn-dl" download style="justify-content:center;width:100%;">&#8681; 11g</a>
+                        <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck12c.sql" class="btn-dl" download style="justify-content:center;width:100%;" data-zh="&#8681; 12c+" data-en="&#8681; 12c+">&#8681; 12c+</a>
                     </div>
-                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck11g.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
-                </div>
-                <div class="script-card accent-oracle">
-                    <div class="script-icon-wrap oracle"><img src="images/oracle.svg" alt="Oracle" width="32" height="32"></div>
-                    <div class="script-card-body">
-                        <h3>dbcheck12c.sql</h3>
-                        <p class="script-ver" data-zh="Oracle 12c 及以上" data-en="Oracle 12c+">Oracle 12c 及以上</p>
-                        <div class="script-tags"><span class="script-tag">12c</span><span class="script-tag">19c</span><span class="script-tag">21c</span><span class="script-tag">26ai</span></div>
-                    </div>
-                    <a href="https://github.com/pc-study/dbcheck/raw/main/scripts/oracle/dbcheck12c.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
                 </div>
                 <div class="script-card accent-shell">
                     <div class="script-icon-wrap shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 15h4" stroke-linecap="round"/></svg></div>
@@ -420,9 +420,9 @@ This application requires JavaScript. Please enable JavaScript and refresh.
         </div>
 
         <div class="scripts-note">
-            <span class="note-icon">&#128161;</span>
-            <span data-zh="所有脚本以只读方式采集数据库状态信息，不会修改任何数据。全部脚本已开源，源码托管在 GitHub，可自行审计。" data-en="All scripts collect database status in read-only mode without modifying any data. All scripts are open-source, hosted on GitHub for self-auditing.">所有脚本以只读方式采集数据库状态信息，不会修改任何数据。全部脚本已开源，源码托管在
-                <a href="https://github.com/pc-study/dbcheck" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600;">GitHub</a>，可自行审计。</span>
+            <span class="note-icon">&#128274;</span>
+            <span data-zh="安全保障：所有脚本仅使用 SELECT 只读查询，不执行任何写操作、不创建任何对象、不影响生产数据库性能。全部脚本已开源，源码托管在 GitHub，可自行审计每一行 SQL。" data-en="Safety guarantee: All scripts use read-only SELECT queries only — no write operations, no object creation, no impact on production performance. All scripts are open-source on GitHub, every SQL line is auditable.">安全保障：所有脚本仅使用 SELECT 只读查询，不执行任何写操作、不创建任何对象、不影响生产数据库性能。全部脚本已开源，源码托管在
+                <a href="https://github.com/pc-study/dbcheck" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600;">GitHub</a>，可自行审计每一行 SQL。</span>
         </div>
     </div>
 </section>
