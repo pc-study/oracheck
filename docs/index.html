@@ -269,12 +269,13 @@ This application requires JavaScript. Please enable JavaScript and refresh.
                         <div class="script-tags"><span class="script-tag">10g</span><span class="script-tag">11g</span><span class="script-tag">12c</span><span class="script-tag">19c</span><span class="script-tag">21c</span><span class="script-tag">26ai</span></div>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;width:100%;margin-top:auto;justify-content:center;">
-                        <select id="oracle-ver-select" class="script-select" onchange="var m={_10g:'dbcheck10g.sql',_11g:'dbcheck11g.sql',_12c:'dbcheck12c.sql'};var k='_'+this.value;document.getElementById('oracle-script-name').textContent=m[k];document.getElementById('oracle-dl-btn').href='/api/scripts/oracle/'+m[k];">
-                            <option value="12c" selected>12c+（12c / 19c / 21c / 26ai）</option>
+                        <select id="oracle-ver-select" class="script-select" onchange="var m={_auto:'dbcheck.sql',_10g:'dbcheck10g.sql',_11g:'dbcheck11g.sql',_12c:'dbcheck12c.sql'};var k='_'+this.value;document.getElementById('oracle-script-name').textContent=m[k];document.getElementById('oracle-dl-btn').href='/api/scripts/oracle/'+m[k];">
+                            <option value="auto" selected>通用版（自动适配 10g~23ai）</option>
+                            <option value="12c">12c+（12c / 19c / 21c / 26ai）</option>
                             <option value="11g">11g（11.1 / 11.2）</option>
                             <option value="10g">10g（10.1 / 10.2）</option>
                         </select>
-                        <a id="oracle-dl-btn" href="/api/scripts/oracle/dbcheck12c.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
+                        <a id="oracle-dl-btn" href="/api/scripts/oracle/dbcheck.sql" class="btn-dl" download data-zh="&#8681; 下载" data-en="&#8681; Download">&#8681; 下载</a>
                     </div>
                 </div>
                 <div class="script-card accent-shell">
@@ -408,7 +409,7 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 
 <span class="cmd-prompt">$ </span><span class="cmd-highlight">sqlplus / as sysdba</span>
 
-<span class="cmd-prompt">SQL&gt; </span><span class="cmd-highlight">@dbcheck12c.sql</span>
+<span class="cmd-prompt">SQL&gt; </span><span class="cmd-highlight">@dbcheck.sql</span>          <span class="cmd-comment">-- 通用版，自动适配 10g~23ai</span>
 
 <span class="cmd-comment"># 3. 脚本执行完毕后，会在当前目录生成 HTML 文件</span>
 <span class="cmd-comment">#    文件名格式：dbcheck_数据库名_日期.html</span>
@@ -421,7 +422,7 @@ This application requires JavaScript. Please enable JavaScript and refresh.
 <span class="cmd-comment"># ── Linux / AIX ──</span>
 <span class="cmd-comment"># 将 4 个脚本文件放在同一目录，以 oracle 用户执行</span>
 <span class="cmd-comment"># 1. 上传脚本到数据库服务器同一目录</span>
-<span class="cmd-comment">#    dbcheck10g.sql / dbcheck11g.sql / dbcheck12c.sql / oscheck.sh（或 oscheck_aix.sh）</span>
+<span class="cmd-comment">#    dbcheck.sql（通用版，自动适配）/ oscheck.sh（或 oscheck_aix.sh）</span>
 
 <span class="cmd-comment"># 2. 执行 oscheck（自动检测版本、收集 OS + DB 信息）</span>
 <span class="cmd-prompt">$ </span><span class="cmd-highlight">sh oscheck.sh</span>             <span class="cmd-comment"># Linux</span>
