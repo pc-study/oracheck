@@ -1740,7 +1740,7 @@ html[lang="en"] .pricing-card.featured::before {
 
 @media (max-width:768px) {
   .features-grid {
-    grid-template-columns:1fr;
+    grid-template-columns:repeat(2,1fr);
     gap:16px
   }
   .scripts-grid {
@@ -1776,12 +1776,17 @@ html[lang="en"] .pricing-card.featured::before {
   .db-info-grid {
     grid-template-columns:1fr 1fr
   }
-
-}
-
-@media (max-width:640px) {
+  /* Move hamburger menu to 768px for iPad portrait */
   .nav-links {
     display:none
+  }
+  /* Scrollable DB tabs on tablet */
+  .scripts-db-tabs {
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch
+  }
+  .scripts-db-tab {
+    white-space:nowrap
   }
   .nav-mobile-toggle {
     display:block
@@ -1810,6 +1815,25 @@ html[lang="en"] .pricing-card.featured::before {
   .nav-backdrop.open {
     display:block
   }
+  /* Move nav-actions into mobile menu at 768px */
+  .nav-actions-mobile {
+    display:flex;
+    gap:8px;
+    padding-top:8px;
+    border-top:1px solid rgba(255,255,255,0.1)
+  }
+  .nav-actions {
+    display:none
+  }
+  /* Footer: stack columns vertically on tablet */
+  .footer-cols {
+    flex-direction:column;
+    gap:24px
+  }
+
+}
+
+@media (max-width:640px) {
   .hero {
     padding:130px 20px 70px
   }
@@ -1875,7 +1899,10 @@ html[lang="en"] .pricing-card.featured::before {
     gap:6px
   }
   .footer-cols {
-    gap:32px
+    gap:20px
+  }
+  .footer-col h3 {
+    margin-bottom:8px
   }
   .footer-bottom {
     flex-direction:column;
@@ -1906,6 +1933,32 @@ html[lang="en"] .pricing-card.featured::before {
     font-size:28px
   }
 
+}
+
+/* Very small phones */
+@media (max-width:480px) {
+  .scripts-grid {
+    grid-template-columns:1fr
+  }
+  .scripts-db-tab {
+    padding:8px 12px;
+    font-size:12px
+  }
+  .feature-card {
+    padding:24px 18px
+  }
+  .stat-item {
+    min-width:70px
+  }
+  .hero-visual-card {
+    width:100%
+  }
+  .footer-top {
+    gap:24px
+  }
+  .footer-brand .brand-desc {
+    max-width:100%
+  }
 }
 
 @media (prefers-reduced-motion:reduce) {
@@ -2447,18 +2500,6 @@ html[lang="en"] .pricing-card.featured::before {
   display:none
 }
 
-@media(max-width:640px) {
-  .nav-actions-mobile {
-    display:flex;
-    gap:8px;
-    padding-top:8px;
-    border-top:1px solid rgba(255,255,255,0.1)
-  }
-  .nav-actions {
-    display:none
-  }
-
-}
 /* Phase6 #9 Email Contact */.wechat-modal-divider {
   display:flex;
   align-items:center;
