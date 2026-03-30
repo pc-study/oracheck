@@ -400,6 +400,7 @@ body.nav-open {
 .feature-card {
   background:var(--card-bg);
   border:1px solid var(--border);
+  border-left:4px solid var(--border);
   border-radius:var(--radius);
   padding:32px 24px;
   transition:all 0.25s
@@ -409,6 +410,19 @@ body.nav-open {
   box-shadow:var(--shadow-lg);
   border-color:rgba(59,130,246,0.2)
 }
+/* Colored left borders for feature cards */
+.feature-border-blue { border-left-color:var(--accent) }
+.feature-border-green { border-left-color:var(--success) }
+.feature-border-orange { border-left-color:var(--warning) }
+.feature-border-purple { border-left-color:#8b5cf6 }
+.feature-border-red { border-left-color:var(--danger) }
+.feature-border-teal { border-left-color:#14b8a6 }
+.feature-border-blue:hover { border-left-color:var(--accent); border-color:rgba(14,165,233,0.2) }
+.feature-border-green:hover { border-left-color:var(--success); border-color:rgba(16,185,129,0.2) }
+.feature-border-orange:hover { border-left-color:var(--warning); border-color:rgba(245,158,11,0.2) }
+.feature-border-purple:hover { border-left-color:#8b5cf6; border-color:rgba(139,92,246,0.2) }
+.feature-border-red:hover { border-left-color:var(--danger); border-color:rgba(239,68,68,0.2) }
+.feature-border-teal:hover { border-left-color:#14b8a6; border-color:rgba(20,184,166,0.2) }
 .feature-icon {
   width:48px;
   height:48px;
