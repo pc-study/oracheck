@@ -204,7 +204,9 @@ body.nav-open {
   color:#fff;
   margin-bottom:16px;
   letter-spacing:-1px;
-  line-height:1.1
+  line-height:1.1;
+  text-wrap:balance;
+  word-break:keep-all
 }
 .hero .tagline {
   font-size:22px;
@@ -277,7 +279,8 @@ body.nav-open {
   font-weight:700;
   color:var(--text);
   margin-bottom:12px;
-  letter-spacing:-0.5px
+  letter-spacing:-0.5px;
+  text-wrap:balance
 }
 .section-header p {
   font-size:16px;
