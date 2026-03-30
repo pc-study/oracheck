@@ -948,24 +948,29 @@ body.nav-open {
 }
 .pricing-card.featured {
   border-color:var(--accent);
-  box-shadow:0 4px 24px rgba(59,130,246,0.12);
-  transform:scale(1.03);
-  z-index:1
+  box-shadow:0 4px 24px rgba(59,130,246,0.12), 0 0 0 1px rgba(14,165,233,0.15);
+  transform:scale(1.05);
+  z-index:1;
+  background:linear-gradient(180deg, rgba(14,165,233,0.04) 0%, var(--card-bg) 100%)
 }
 .pricing-card.featured:hover {
-  transform:scale(1.03) translateY(-4px)
+  transform:scale(1.05) translateY(-4px);
+  box-shadow:0 8px 32px rgba(59,130,246,0.2), 0 0 0 1px rgba(14,165,233,0.2)
 }
 .pricing-card.featured::before {
   content:'推荐买断';
   position:absolute;
-  top:-12px;
-  right:24px;
-  background:var(--accent);
+  top:-14px;
+  left:50%;
+  transform:translateX(-50%);
+  background:linear-gradient(135deg, var(--accent), #6366f1);
   color:#fff;
-  font-size:12px;
-  font-weight:600;
-  padding:4px 14px;
-  border-radius:12px
+  font-size:13px;
+  font-weight:700;
+  padding:6px 20px;
+  border-radius:20px;
+  letter-spacing:0.5px;
+  box-shadow:0 4px 12px rgba(14,165,233,0.3)
 }
 html[lang="en"] .pricing-card.featured::before {
   content:'Best Value'
@@ -1852,7 +1857,8 @@ html[lang="en"] .pricing-card.featured::before {
 
 @media (max-width:900px) {
   .pricing-card.featured {
-    transform:none
+    transform:none;
+    background:linear-gradient(180deg, rgba(14,165,233,0.04) 0%, var(--card-bg) 100%)
   }
   .pricing-card.featured:hover {
     transform:translateY(-4px)
@@ -1943,6 +1949,9 @@ html[lang="en"] .pricing-card.featured::before {
 }
 [data-theme="dark"] .pricing-detail {
   background:#1e293b
+}
+[data-theme="dark"] .pricing-card.featured {
+  background:linear-gradient(180deg, rgba(14,165,233,0.08) 0%, var(--card-bg) 100%)
 }
 [data-theme="dark"] .error-msg {
   background:rgba(239,68,68,0.12)
