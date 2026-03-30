@@ -2895,3 +2895,124 @@ details.scripts-howto[open] .scripts-howto-arrow {
 
 }
 
+/* ===== Hero Product Visual ===== */
+.hero-visual {
+  margin-top:48px;
+  perspective:1200px;
+  display:flex;
+  justify-content:center
+}
+.hero-visual-card {
+  width:420px;
+  max-width:100%;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;
+  overflow:hidden;
+  transform:rotateY(-6deg) rotateX(4deg);
+  box-shadow:0 24px 64px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+  transition:transform 0.4s ease;
+  backdrop-filter:blur(8px)
+}
+.hero-visual-card:hover {
+  transform:rotateY(0deg) rotateX(0deg)
+}
+.hv-titlebar {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:10px 14px;
+  background:rgba(0,0,0,0.25);
+  border-bottom:1px solid rgba(255,255,255,0.06)
+}
+.hv-dot {
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  display:inline-block
+}
+.hv-dot.red { background:#ff5f57 }
+.hv-dot.yellow { background:#ffbd2e }
+.hv-dot.green { background:#28c840 }
+.hv-filename {
+  margin-left:8px;
+  font-size:12px;
+  color:rgba(255,255,255,0.5);
+  font-family:monospace
+}
+.hv-body {
+  padding:16px 18px
+}
+.hv-row {
+  display:flex;
+  justify-content:space-between;
+  padding:5px 0;
+  font-size:13px
+}
+.hv-label {
+  color:rgba(255,255,255,0.4)
+}
+.hv-value {
+  color:rgba(255,255,255,0.8);
+  font-weight:600
+}
+.hv-diag {
+  display:flex;
+  gap:10px;
+  margin:12px 0
+}
+.hv-badge {
+  padding:4px 12px;
+  border-radius:16px;
+  font-size:12px;
+  font-weight:600
+}
+.hv-ok {
+  background:rgba(16,185,129,0.15);
+  color:#34d399
+}
+.hv-warn {
+  background:rgba(239,68,68,0.15);
+  color:#f87171
+}
+.hv-bar-group {
+  margin-top:8px
+}
+.hv-bar-label {
+  font-size:11px;
+  color:rgba(255,255,255,0.35);
+  margin-bottom:4px;
+  margin-top:8px
+}
+.hv-bar {
+  height:6px;
+  background:rgba(255,255,255,0.08);
+  border-radius:3px;
+  overflow:hidden
+}
+.hv-bar-fill {
+  height:100%;
+  border-radius:3px;
+  background:linear-gradient(90deg, var(--accent), #6366f1);
+  animation:hv-bar-grow 1.5s ease-out forwards
+}
+.hv-bar-green {
+  background:linear-gradient(90deg, #10b981, #34d399)
+}
+@keyframes hv-bar-grow {
+  from { width:0 }
+}
+@media (max-width:640px) {
+  .hero-visual {
+    margin-top:32px;
+    perspective:none
+  }
+  .hero-visual-card {
+    transform:none;
+    width:100%
+  }
+  .hero-visual-card:hover {
+    transform:none
+  }
+}
+
