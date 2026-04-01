@@ -625,6 +625,11 @@ var ITEM_NAMES_DB = {
         'dgapply': 'DataGuard 同步',
         'dgdeststat': 'DG 目标状态',
         'awrinfo': 'AWR 负载概况',
+        'loadprofile': '负载概况',
+        'insteffi': '实例效率',
+        'timemodel': '时间模型',
+        'archperday': '每日归档量',
+        'dbpara': '数据库参数',
         'top10event': 'Top10 等待事件',
         'top10sql': 'Top10 SQL',
         'isspfile': 'SPFILE 启动状态',
@@ -769,7 +774,8 @@ var ITEM_NAMES_DB = {
 };
 var ITEM_NAMES = ITEM_NAMES_DB['oracle'];
 
-function friendlyName(key) {
+function friendlyName(key, serverNames) {
+    if (serverNames && serverNames[key]) return serverNames[key];
     var dbType = (document.querySelector('input[name="dbType"]:checked') || {}).value || 'oracle';
     if (dbType === 'auto') dbType = 'oracle';
     var names = ITEM_NAMES_DB[dbType] || ITEM_NAMES_DB['oracle'];
@@ -807,6 +813,7 @@ function showResults(reports, detectedDbType) {
         var abnormalCount = r.abnormal_count || 0;
         var abnormals = r.abnormal_items || [];
         var descDetails = r.desc_details || {};
+        var serverNames = r.item_names || {};
         var problems = r.db_desc || [];
         var downloadFile = r.report_file || '';
         html += '<div' + (idx > 0 ? ' style="margin-top:32px;padding-top:32px;border-top:1px solid var(--border-dim);"' : '') + '>';
@@ -859,7 +866,7 @@ function showResults(reports, detectedDbType) {
             html += '<div class="issue-list"><h4>&#9888; ' + (_currentLang === 'en' ? 'Abnormal Items' : '异常项') + '</h4>';
             abnormals.forEach(function(item) {
                 var detail = descDetails[item] || '';
-                html += '<div class="issue-item abnormal-item"><span class="issue-dot"></span><div class="issue-content"><span class="issue-name">' + escapeHtml(friendlyName(item)) + '</span>';
+                html += '<div class="issue-item abnormal-item"><span class="issue-dot"></span><div class="issue-content"><span class="issue-name">' + escapeHtml(friendlyName(item, serverNames)) + '</span>';
                 if (detail) {
                     html += '<p class="issue-detail">' + escapeHtml(detail) + '</p>';
                 }
@@ -902,7 +909,7 @@ function showResults(reports, detectedDbType) {
                 if (advice) {
                     _priorities[advice.p].push(isEn ? advice.en : advice.zh);
                 } else {
-                    _priorities.medium.push(isEn ? ('Address: ' + friendlyName(item)) : ('处理 ' + friendlyName(item) + ' 相关异常'));
+                    _priorities.medium.push(isEn ? ('Address: ' + friendlyName(item, serverNames)) : ('处理 ' + friendlyName(item, serverNames) + ' 相关异常'));
                 }
             });
             var _levelLabels = {
