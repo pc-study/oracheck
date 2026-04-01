@@ -367,7 +367,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .df-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
 .ai-glow{filter:drop-shadow(0 0 6px rgba(245,158,11,0.4))}
 .df-dash{color:var(--text-dim);margin:0 6px}
-.desktop-features strong{color:var(--text-primary);font-weight:600;white-space:nowrap}
+.desktop-features strong{color:var(--text-primary);font-weight:600;white-space:nowrap;min-width:5.5em;text-align-last:justify}
 .desktop-platforms{display:flex;gap:10px}
 .platform-tag{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text-secondary);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08)}
 .desktop-preview{position:relative}
