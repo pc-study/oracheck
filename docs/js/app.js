@@ -1151,6 +1151,36 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+/* ===== 脚本下载（fetch + Blob 绕过跨域 download 限制） ===== */
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn-dl');
+    if (!btn) return;
+    var url = btn.href;
+    if (!url || url.indexOf('gitee.com') === -1) return;
+    e.preventDefault();
+    var filename = url.split('/').pop() || 'script';
+    btn.classList.add('downloading');
+    var origText = btn.textContent;
+    btn.textContent = '\u23F3';
+    fetch(url).then(function(r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.blob();
+    }).then(function(blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }).catch(function() {
+        window.open(url, '_blank');
+    }).finally(function() {
+        btn.classList.remove('downloading');
+        btn.textContent = origText;
+    });
+});
+
 /* ===== Stats Counter Animation ===== */
 (function() {
     var statNums = document.querySelectorAll('.stat-num[data-target]');
