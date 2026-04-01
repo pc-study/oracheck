@@ -768,12 +768,12 @@ function showResults(reports, detectedDbType) {
     if (detectedDbType) {
         var detectedLabel = _DB_TYPE_LABELS[detectedDbType] || detectedDbType;
         var isEn = _currentLang === 'en';
-        html += '<div style="padding:8px 16px;margin-bottom:12px;background:var(--accent-light,#e8f4fd);border-radius:8px;font-size:13px;color:var(--text-light);">'
+        html += '<div class="detected-db-banner">'
             + (isEn ? 'Auto-detected database type: ' : '自动识别数据库类型: ')
-            + '<strong style="color:var(--accent);">' + escapeHtml(detectedLabel) + '</strong></div>';
+            + '<strong>' + escapeHtml(detectedLabel) + '</strong></div>';
     }
     if (!reports || !reports.length) {
-        html = '<div class="results-empty"><div style="font-size:48px;opacity:0.3;margin-bottom:16px;">&#128203;</div><p style="color:var(--text-light);font-size:15px;">未获取到报告数据</p><p style="color:var(--text-light);font-size:13px;margin-top:8px;opacity:0.6;">请检查上传的文件是否为有效的巡检文件</p></div>';
+        html = '<div class="results-empty"><div style="font-size:48px;opacity:0.3;margin-bottom:16px;">&#128203;</div><p style="font-size:15px;color:var(--text-secondary);">未获取到报告数据</p><p style="font-size:13px;margin-top:8px;color:var(--text-dim);">请检查上传的文件是否为有效的巡检文件</p></div>';
         panel.innerHTML = html;
         panel.style.display = 'block';
         return;
@@ -785,17 +785,17 @@ function showResults(reports, detectedDbType) {
         var descDetails = r.desc_details || {};
         var problems = r.db_desc || [];
         var downloadFile = r.report_file || '';
-        html += '<div style="' + (idx > 0 ? 'margin-top:32px;padding-top:32px;border-top:1px solid var(--border);' : '') + '">';
+        html += '<div' + (idx > 0 ? ' style="margin-top:32px;padding-top:32px;border-top:1px solid var(--border-dim);"' : '') + '>';
         html += '<div class="results-header">';
-        html += '<h3>&#128202; 分析结果' + (reports.length > 1 ? ' #' + (idx + 1) : '') + '</h3>';
+        html += '<h3>&#128202; ' + (_currentLang === 'en' ? 'Analysis Results' : '分析结果') + (reports.length > 1 ? ' #' + (idx + 1) : '') + '</h3>';
         if (downloadFile) {
-            html += '<a class="btn-download" href="' + API_BASE + '/api/download/' + encodeURIComponent(downloadFile) + '">&#11015; 下载 Word 报告</a>';
+            html += '<a class="btn-download" href="' + API_BASE + '/api/download/' + encodeURIComponent(downloadFile) + '">&#11015; ' + (_currentLang === 'en' ? 'Download Report' : '下载 Word 报告') + '</a>';
         }
         html += '</div>';
         var dbType = detectedDbType || (document.querySelector('input[name="dbType"]:checked') || {}).value || 'oracle';
         if (dbType === 'auto') dbType = 'oracle';
         var infoItems = [{
-            label: '数据库名称',
+            label: _currentLang === 'en' ? 'Database' : '数据库名称',
             value: r.dbname || '-'
         }];
         if (dbType === 'oracle') {
@@ -805,7 +805,7 @@ function showResults(reports, detectedDbType) {
             });
         }
         infoItems.push({
-            label: '版本',
+            label: _currentLang === 'en' ? 'Version' : '版本',
             value: shortVersion(r.db_version)
         });
         if (dbType === 'oracle') {
@@ -815,12 +815,12 @@ function showResults(reports, detectedDbType) {
             });
         }
         infoItems.push({
-            label: '巡检日期',
+            label: _currentLang === 'en' ? 'Check Date' : '巡检日期',
             value: r.check_date || '-'
         });
         infoItems.push({
-            label: '报告类型',
-            value: (r.report_type || '-') + '检'
+            label: _currentLang === 'en' ? 'Report Type' : '报告类型',
+            value: (r.report_type || '-') + (_currentLang === 'en' ? '' : '检')
         });
         html += '<div class="db-info-grid">';
         infoItems.forEach(function(item) {
@@ -828,11 +828,11 @@ function showResults(reports, detectedDbType) {
         });
         html += '</div>';
         html += '<div class="diag-summary">';
-        html += '<div class="diag-badge normal"><div class="count">' + normalCount + '</div><div class="desc">正常项</div></div>';
-        html += '<div class="diag-badge abnormal"><div class="count">' + abnormalCount + '</div><div class="desc">异常项</div></div>';
+        html += '<div class="diag-badge normal"><div class="count">' + normalCount + '</div><div class="desc">' + (_currentLang === 'en' ? 'Normal' : '正常项') + '</div></div>';
+        html += '<div class="diag-badge abnormal"><div class="count">' + abnormalCount + '</div><div class="desc">' + (_currentLang === 'en' ? 'Abnormal' : '异常项') + '</div></div>';
         html += '</div>';
         if (abnormals.length) {
-            html += '<div class="issue-list"><h4>&#9888; 异常项</h4>';
+            html += '<div class="issue-list"><h4>&#9888; ' + (_currentLang === 'en' ? 'Abnormal Items' : '异常项') + '</h4>';
             abnormals.forEach(function(item) {
                 var detail = descDetails[item] || '';
                 html += '<div class="issue-item abnormal-item"><span class="issue-dot"></span><div class="issue-content"><span class="issue-name">' + escapeHtml(friendlyName(item)) + '</span>';
@@ -844,7 +844,7 @@ function showResults(reports, detectedDbType) {
             html += '</div>';
         }
         if (problems.length) {
-            html += '<div class="problems-section"><h4>&#128221; 问题汇总</h4>';
+            html += '<div class="problems-section"><h4>&#128221; ' + (_currentLang === 'en' ? 'Problem Summary' : '问题汇总') + '</h4>';
             problems.forEach(function(p) {
                 html += '<div class="problem-item">' + escapeHtml(p) + '</div>';
             });
@@ -853,13 +853,13 @@ function showResults(reports, detectedDbType) {
         html += '</div>';
     });
     html += '<div class="results-promo-box">';
-    html += '<p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">需要更多报告？</p>';
-    html += '<p style="font-size:13px;color:var(--text-light);margin-bottom:16px;line-height:1.6;">批量生成、自定义模板、离线运行 — 桌面专业版一次买断，永久使用</p>';
+    html += '<p style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">' + (_currentLang === 'en' ? 'Need more reports?' : '需要更多报告？') + '</p>';
+    html += '<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">' + (_currentLang === 'en' ? 'Batch processing, custom templates, offline — one-time purchase, forever' : '批量生成、自定义模板、离线运行 — 桌面专业版一次买断，永久使用') + '</p>';
     html += '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">';
-    html += '<a href="#pricing" style="padding:8px 20px;background:var(--accent);color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">查看定价方案</a>';
-    html += '<a href="#desktop" style="padding:8px 20px;background:rgba(59,130,246,0.08);color:var(--accent);border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid rgba(59,130,246,0.2);">了解桌面版</a>';
+    html += '<a href="#pricing" style="padding:8px 20px;background:var(--grad-accent);color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">' + (_currentLang === 'en' ? 'View Pricing' : '查看定价方案') + '</a>';
+    html += '<a href="#desktop" style="padding:8px 20px;background:rgba(59,130,246,0.08);color:var(--text-accent);border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid rgba(59,130,246,0.2);">' + (_currentLang === 'en' ? 'Learn Desktop' : '了解桌面版') + '</a>';
     html += '</div></div>';
-    html += '<div style="text-align:center;margin-top:24px;"><button onclick="resetUploadForm()" class="btn btn-outline" style="color:var(--text);border-color:var(--border);padding:10px 28px;font-size:14px;">继续生成报告</button></div>';
+    html += '<div style="text-align:center;margin-top:24px;"><button onclick="resetUploadForm()" class="btn btn-outline" style="color:var(--text-primary);border-color:var(--border-subtle);padding:10px 28px;font-size:14px;">' + (_currentLang === 'en' ? 'Generate Another' : '继续生成报告') + '</button></div>';
     panel.innerHTML = html;
     panel.style.display = 'block';
     panel.scrollIntoView({
