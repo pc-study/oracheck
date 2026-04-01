@@ -298,7 +298,8 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .file-remove:hover{color:var(--accent-red)}
 .report-type-group{margin-bottom:20px}
 .group-label{display:block;font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px}
-.db-type-options,.report-type-options{display:flex;gap:8px;flex-wrap:wrap}
+.db-type-options{display:flex;gap:8px;flex-wrap:nowrap}
+.report-type-options{display:flex;gap:8px;flex-wrap:wrap}
 .db-type-option,.report-type-option{position:relative}
 .db-type-option input,.report-type-option input{position:absolute;opacity:0;pointer-events:none}
 .db-type-label,.option-label{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;color:var(--text-secondary);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;transition:all .2s}
@@ -479,7 +480,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
   .section-header p{font-size:14px}
   .desktop-section{padding:60px 0}
   .ai-banner{padding:60px 0}
-  .db-type-options{gap:6px}
+  .db-type-options{gap:6px;flex-wrap:wrap}
   .db-type-label,.option-label{padding:6px 10px;font-size:12px}
   .report-type-options{gap:6px}
   .footer-cols{grid-template-columns:1fr}
